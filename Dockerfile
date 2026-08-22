@@ -28,8 +28,8 @@ COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 # Install dependencies
 RUN composer install --no-interaction --prefer-dist
 
-# Expose port
+# Expose Railway port
 EXPOSE 8000
 
-# Run Laravel server
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+# Run Laravel using PHP built-in server
+CMD php -S 0.0.0.0:${PORT:-8000} -t public
