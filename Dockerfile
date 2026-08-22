@@ -22,6 +22,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy project files
 COPY . .
 
+# Create Laravel storage and cache directories
+RUN mkdir -p storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 # Copy custom PHP configuration
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
