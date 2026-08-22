@@ -376,12 +376,37 @@ class LoginController extends Controller
 
                 if (! empty($assignment['id'])) {
                     try {
+                        $enrolledUsers = $this->activeMoodleService()->getEnrolledUsers($courseId);
+                    } catch (\Throwable $throwable) {
+                        $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
+                    }
+
+                    $canGradeAssignment = $this->currentUserHasTeachingRole($enrolledUsers);
+
+                    if ($canGradeAssignment) {
+                        try {
+                            $assignmentGrades = null;
+                            try {
+                                $assignmentGrades = $this->activeMoodleService()->getAssignmentGrades((int) $assignment['id']);
+                            } catch (\Throwable) {
+                                $assignmentGrades = null;
+                            }
+
+                            $assignmentSubmissions = $this->assignmentSubmissionsForGrading(
+                                $this->activeMoodleService()->getAssignmentSubmissions((int) $assignment['id']),
+                                $enrolledUsers,
+                                $assignmentGrades,
+                            );
+                        } catch (\Throwable $throwable) {
+                            $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
+                        }
+                    }
+
+                    if (! $canGradeAssignment) {
                         $submissionStatus = $this->activeMoodleService()->getAssignmentSubmissionStatus((int) $assignment['id']);
                         $assignmentSettings = $this->assignmentSubmissionSettings($assignment, $submissionStatus);
                         $assignmentAnswer = $this->submissionOnlineText($submissionStatus);
                         $assignmentGrade = $this->currentUserAssignmentGrade($courseId, $assignment, $submissionStatus);
-                    } catch (\Throwable $throwable) {
-                        $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
                     }
                 }
             }
@@ -1272,7 +1297,71 @@ class LoginController extends Controller
         }
     }
 
+    public function gradeAssignmentSubmission(Request $request, int $courseId, int $moduleId)
+    {
+        if (! session('logged_in')) {
+            return redirect()->route('login');
+        }
 
+        try {
+            [$module] = $this->findModuleInCourseContents(
+                $this->activeMoodleService()->getCourseContents($courseId),
+                $moduleId,
+            );
+
+            if (! $module || ($module['modname'] ?? null) !== 'assign') {
+                return back()->withErrors(['grade' => 'Aktivitas ini bukan tugas yang dapat dinilai.']);
+            }
+
+            $assignment = $this->findAssignmentForModule(
+                $this->activeMoodleService()->getAssignments($courseId),
+                $module,
+            );
+
+            if (empty($assignment['id'])) {
+                return back()->withErrors(['grade' => 'Detail tugas tidak ditemukan.']);
+            }
+
+            if (! $this->currentUserCanTeachCourse($courseId)) {
+                return back()->withErrors(['grade' => 'Akun ini tidak memiliki hak dosen untuk menilai tugas pada course ini.']);
+            }
+
+            $this->activeMoodleService()->getAssignmentSubmissions((int) $assignment['id']);
+
+            $maxGrade = max(0, (float) ($assignment['grade'] ?? 100));
+            $payload = $request->validate([
+                'userid' => ['required', 'integer', 'min:1'],
+                'grade' => ['required', 'numeric', 'min:0', 'max:'.$maxGrade],
+                'feedback' => ['nullable', 'string', 'max:2000'],
+                'workflowstate' => ['required', 'string', Rule::in(array_keys($this->assignmentWorkflowStates()))],
+            ], [
+                'userid.required' => 'Mahasiswa wajib dipilih.',
+                'grade.required' => 'Nilai wajib diisi.',
+                'grade.max' => 'Nilai maksimal untuk tugas ini adalah '.$maxGrade.'.',
+                'feedback.max' => 'Feedback maksimal 2.000 karakter.',
+                'workflowstate.required' => 'Status publikasi nilai wajib dipilih.',
+                'workflowstate.in' => 'Status publikasi nilai tidak valid.',
+            ]);
+
+            $this->activeMoodleService()->saveAssignmentGrade(
+                (int) $assignment['id'],
+                (int) $payload['userid'],
+                (float) $payload['grade'],
+                $payload['feedback'] ?? null,
+                $payload['workflowstate'],
+            );
+
+            $workflowLabel = $this->assignmentWorkflowStates()[$payload['workflowstate']] ?? 'tersimpan';
+
+            return redirect()
+                ->route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId])
+                ->with('success', 'Nilai tugas berhasil disimpan dengan status '.$workflowLabel.'.');
+        } catch (\Throwable $throwable) {
+            return back()
+                ->withInput()
+                ->withErrors(['grade' => 'Nilai belum berhasil disimpan. '.$this->moodleUnavailableMessage($throwable)]);
+        }
+    }
 
     public function grades(Request $request)
     {

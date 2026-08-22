@@ -376,12 +376,37 @@ class LoginController extends Controller
 
                 if (! empty($assignment['id'])) {
                     try {
+                        $enrolledUsers = $this->activeMoodleService()->getEnrolledUsers($courseId);
+                    } catch (\Throwable $throwable) {
+                        $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
+                    }
+
+                    $canGradeAssignment = $this->currentUserHasTeachingRole($enrolledUsers);
+
+                    if ($canGradeAssignment) {
+                        try {
+                            $assignmentGrades = null;
+                            try {
+                                $assignmentGrades = $this->activeMoodleService()->getAssignmentGrades((int) $assignment['id']);
+                            } catch (\Throwable) {
+                                $assignmentGrades = null;
+                            }
+
+                            $assignmentSubmissions = $this->assignmentSubmissionsForGrading(
+                                $this->activeMoodleService()->getAssignmentSubmissions((int) $assignment['id']),
+                                $enrolledUsers,
+                                $assignmentGrades,
+                            );
+                        } catch (\Throwable $throwable) {
+                            $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
+                        }
+                    }
+
+                    if (! $canGradeAssignment) {
                         $submissionStatus = $this->activeMoodleService()->getAssignmentSubmissionStatus((int) $assignment['id']);
                         $assignmentSettings = $this->assignmentSubmissionSettings($assignment, $submissionStatus);
                         $assignmentAnswer = $this->submissionOnlineText($submissionStatus);
                         $assignmentGrade = $this->currentUserAssignmentGrade($courseId, $assignment, $submissionStatus);
-                    } catch (\Throwable $throwable) {
-                        $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
                     }
                 }
             }
