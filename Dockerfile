@@ -11,7 +11,10 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    default-mysql-client
+    default-mysql-client \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
@@ -22,21 +25,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy project files
 COPY . .
 
-# Create Laravel storage and cache directories
-RUN mkdir -p storage/framework/cache \
-    storage/framework/sessions \
-    storage/framework/views \
-    bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# Install PHP dependencies
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+
+# Install frontend dependencies and build Vite
+RUN npm install
+RUN npm run build
 
 # Copy custom PHP configuration
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Install dependencies
-RUN composer install --no-interaction --prefer-dist
+# Railway port
+EXPOSE 8080
 
-# Expose Railway port
-EXPOSE 8000
-
-# Run Laravel using PHP built-in server
-CMD php -S 0.0.0.0:${PORT:-8000} -t public
+# Start Laravel
+CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
