@@ -25,6 +25,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy project files
 COPY . .
 
+# Create Laravel cache directories
+RUN mkdir -p \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache
+
+# Set permissions
+RUN chmod -R 775 storage bootstrap/cache
+
 # Install PHP dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
@@ -39,4 +49,4 @@ COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 EXPOSE 8080
 
 # Start Laravel
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
