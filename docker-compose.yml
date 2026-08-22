@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./:/app
+    ports:
+      - "8081:8000"
+    networks:
+      - laravel
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+networks:
+  laravel:
+    driver: bridge

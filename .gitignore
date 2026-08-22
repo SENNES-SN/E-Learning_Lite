@@ -1,0 +1,64 @@
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.backup
+.env.production
+.env.*
+!.env.example
+auth.json
+*.key
+*.pem
+*.p12
+id_rsa
+id_rsa.pub
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+.phpactor.json
+*.code-workspace
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Laravel runtime
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/storage/app/public/
+/storage/pail/
+/storage/*.key
+/bootstrap/cache/*.php
+
+# Build / cache
+/public/build/
+/public/hot/
+.phpunit.result.cache
+.phpunit.cache/
+.npm/
+.cache/
+
+# Laravel generated public storage
+/public/storage/
+
+# Archives / backups
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.bak
+*.backup
+
+# Database dumps
+*.sql
+*.dump
