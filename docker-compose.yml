@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: laravel-app
+    container_name: E_Learning_Lite
     restart: unless-stopped
     working_dir: /app
     volumes:
