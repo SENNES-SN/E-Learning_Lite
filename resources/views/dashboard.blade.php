@@ -105,7 +105,7 @@
                                     @endif
                                 </section>
 
-                                <a class="final-course-action" href="{{ route('courses.show', ['courseId' => $courseId]) }}">
+                                <a class="final-course-action" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button data-loading-tone="dark">
                                     <span class="asset-icon asset-icon-book" aria-hidden="true"></span>
                                     Materi
                                 </a>

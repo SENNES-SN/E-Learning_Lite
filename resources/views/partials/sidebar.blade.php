@@ -38,7 +38,7 @@
 
     <form class="sidebar-logout-form" method="POST" action="{{ route('logout') }}">
         @csrf
-        <button type="submit" class="app-logout-button">
+        <button type="submit" class="app-logout-button" data-loading-button data-loading-tone="dark">
             <span class="asset-icon asset-icon-logout" aria-hidden="true"></span>
             <span>Logout</span>
         </button>

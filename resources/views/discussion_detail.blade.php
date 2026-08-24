@@ -28,7 +28,7 @@
                         <p>{{ $course['fullname'] ?? 'Mata Kuliah' }}</p>
                         <h1>{{ $discussionName }}</h1>
                     </div>
-                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah">
+                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>

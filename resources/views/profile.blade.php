@@ -33,7 +33,7 @@
                         <h1>Profil Pengguna</h1>
                         <p>Informasi akun yang digunakan dalam pembelajaran.</p>
                     </div>
-                    <a class="final-back-button" href="{{ route('dashboard') }}" aria-label="Kembali ke dashboard">
+                    <a class="final-back-button" href="{{ route('dashboard') }}" aria-label="Kembali ke dashboard" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>

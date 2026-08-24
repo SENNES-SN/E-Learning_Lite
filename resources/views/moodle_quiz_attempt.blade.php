@@ -73,8 +73,8 @@
                                 </section>
 
                                 <div class="quiz-page-actions">
-                                    <button class="quiz-secondary-button" type="button" data-quiz-navigate="{{ max(0, $currentPage - 1) }}" {{ $currentPage <= 0 ? 'disabled' : '' }}><i data-lucide="arrow-left"></i> Sebelumnya</button>
-                                    <button class="quiz-primary-button" type="button" data-quiz-navigate="{{ $currentPage + 1 }}" {{ $currentPage + 1 >= max(1, $totalQuestions) ? 'disabled' : '' }}>Selanjutnya <i data-lucide="arrow-right"></i></button>
+                                    <button class="quiz-secondary-button" type="button" data-quiz-navigate="{{ max(0, $currentPage - 1) }}" data-loading-button data-loading-tone="dark" {{ $currentPage <= 0 ? 'disabled' : '' }}><i data-lucide="arrow-left"></i> Sebelumnya</button>
+                                    <button class="quiz-primary-button" type="button" data-quiz-navigate="{{ $currentPage + 1 }}" data-loading-button {{ $currentPage + 1 >= max(1, $totalQuestions) ? 'disabled' : '' }}>Selanjutnya <i data-lucide="arrow-right"></i></button>
                                 </div>
                             </div>
 
@@ -91,10 +91,10 @@
                                             $questionPage = isset($question['page']) ? (int) $question['page'] : ($loop->iteration - 1);
                                             $answered = $questionIsAnswered($question);
                                         @endphp
-                                        <button type="button" class="{{ $answered ? 'is-answered' : '' }} {{ $questionPage === $currentPage ? 'is-current' : '' }}" data-question-nav data-question-page="{{ $questionPage }}" data-question-answered="{{ $answered ? '1' : '0' }}">{{ $questionNumber }}</button>
+                                        <button type="button" class="{{ $answered ? 'is-answered' : '' }} {{ $questionPage === $currentPage ? 'is-current' : '' }}" data-question-nav data-question-page="{{ $questionPage }}" data-question-answered="{{ $answered ? '1' : '0' }}" data-loading-button @if (! $answered) data-loading-tone="dark" @endif>{{ $questionNumber }}</button>
                                     @endforeach
                                 </div>
-                                <button class="quiz-finish-button" type="button" data-quiz-finish>Selesai</button>
+                                <button class="quiz-finish-button" type="button" data-quiz-finish data-loading-button>Selesai</button>
                             </aside>
                         </div>
                     </form>
@@ -125,7 +125,7 @@
                     <span><i data-lucide="calendar-days"></i></span>
                     <div><small>Waktu Saat Ini</small><strong>{{ now()->timezone($timezone)->format('d / m / Y H:i') }}</strong></div>
                 </div>
-                <a class="quiz-expired-return" href="{{ route('courses.show', ['courseId' => $courseId]) }}">Kembali ke Detail Mata Kuliah</a>
+                <a class="quiz-expired-return" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button>Kembali ke Detail Mata Kuliah</a>
             </section>
         </div>
     @endif
@@ -160,17 +160,18 @@
                 payloadInput.value = JSON.stringify(data);
             };
 
-            const submitToPage = (targetPage, finish = false) => {
+            const submitToPage = (targetPage, finish = false, trigger = null) => {
                 pageInput.value = String(Math.max(0, targetPage));
                 finishInput.value = finish ? '1' : '0';
                 buildPayload();
+                window.setButtonLoading?.(trigger);
                 form.submit();
             };
 
-            document.querySelectorAll('[data-quiz-navigate]').forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.quizNavigate || 0))));
-            navButtons.forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.questionPage || 0))));
+            document.querySelectorAll('[data-quiz-navigate]').forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.quizNavigate || 0), false, button)));
+            navButtons.forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.questionPage || 0), false, button)));
 
-            document.querySelector('[data-quiz-finish]')?.addEventListener('click', () => {
+            document.querySelector('[data-quiz-finish]')?.addEventListener('click', (event) => {
                 const currentPage = Number(pageInput.value || 0);
                 const unanswered = navButtons.filter((button) => {
                     const buttonPage = Number(button.dataset.questionPage || 0);
@@ -183,7 +184,7 @@
                     warningLayer.querySelector('button')?.focus();
                     return;
                 }
-                submitToPage(currentPage, true);
+                submitToPage(currentPage, true, event.currentTarget);
             });
 
             document.querySelector('[data-unanswered-close]')?.addEventListener('click', () => {

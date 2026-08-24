@@ -310,7 +310,7 @@ Dashboard menyediakan ringkasan pembelajaran yang mudah dipahami oleh Mahasiswa.
 | REQ-015 | Sistem harus menampilkan daftar course yang diikuti mahasiswa. | High |
 | REQ-016 | Sistem harus menampilkan ringkasan aktivitas pembelajaran berdasarkan data Moodle yang tersedia. | Medium |
 | REQ-017 | Sistem harus menampilkan informasi progress dan gamifikasi pada dashboard Mahasiswa. | Medium |
-| REQ-018 | Sistem harus menampilkan ringkasan notifikasi dan deadline pada dashboard apabila data tersedia. | Medium |
+| REQ-018 | Sistem harus menampilkan ringkasan notifikasi dan deadline aktivitas yang belum diselesaikan pada dashboard apabila data tersedia. | Medium |
 | REQ-019 | Sistem harus menyediakan pencarian course pada dashboard atau daftar course. | Medium |
 
 ## 3.4 Course dan Detail Pembelajaran

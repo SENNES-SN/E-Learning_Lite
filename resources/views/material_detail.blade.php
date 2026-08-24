@@ -58,7 +58,7 @@
                     <span class="final-material-status {{ $materialIsCompleted ? 'is-completed' : 'is-pending' }}">
                         {{ $materialIsCompleted ? 'Sudah Diselesaikan' : 'Belum Diselesaikan' }}
                     </span>
-                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah">
+                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>
@@ -154,10 +154,7 @@
                     @if ($materialIsCompleted)
                         <button class="material-reader-button is-primary" type="button" data-reader-close>Selesai</button>
                     @else
-                        <button class="material-reader-button is-primary" type="submit" form="material-complete-form" data-complete-material>
-                            <span>Selesai</span>
-                            <i class="material-reader-button-loader" data-lucide="loader-circle" aria-hidden="true"></i>
-                        </button>
+                        <button class="material-reader-button is-primary" type="submit" form="material-complete-form" data-loading-button data-loading-tone="dark">Selesai</button>
                     @endif
                 </div>
             </footer>
@@ -211,8 +208,6 @@
             const readerFallback = document.querySelector('[data-reader-fallback]');
             const openButton = document.querySelector('[data-reader-open]');
             const closeButtons = document.querySelectorAll('[data-reader-close]');
-            const completeForm = document.getElementById('material-complete-form');
-            const completeButton = document.querySelector('[data-complete-material]');
             let readerLoaded = false;
 
             const setPageLocked = (locked) => document.body.classList.toggle('material-modal-open', locked);
@@ -289,22 +284,6 @@
 
             openButton?.addEventListener('click', openReader);
             closeButtons.forEach((button) => button.addEventListener('click', closeReader));
-
-            completeForm?.addEventListener('submit', () => {
-                if (!completeButton || completeButton.dataset.submitting === 'true') return;
-                completeButton.dataset.submitting = 'true';
-                completeButton.disabled = true;
-                completeButton.classList.add('is-submitting');
-                completeButton.setAttribute('aria-busy', 'true');
-            });
-
-            window.addEventListener('pageshow', (event) => {
-                if (!event.persisted || !completeButton) return;
-                completeButton.dataset.submitting = 'false';
-                completeButton.disabled = false;
-                completeButton.classList.remove('is-submitting');
-                completeButton.removeAttribute('aria-busy');
-            });
 
             const pointsLayer = document.querySelector('[data-points-layer]');
             const badgeLayer = document.querySelector('[data-badge-layer]');

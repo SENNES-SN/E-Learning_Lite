@@ -23,7 +23,8 @@ class LoginFlowTest extends TestCase
             ->assertSee('E-Learning Lite')
             ->assertSee('Masuk untuk melanjutkan pembelajaran')
             ->assertSee('Masukkan Username')
-            ->assertSee('Masukkan Password');
+            ->assertSee('Masukkan Password')
+            ->assertSee('class="login-submit" type="submit" data-loading-button', false);
     }
 
     public function test_invalid_credentials_show_a_friendly_message(): void

@@ -300,6 +300,57 @@ body.material-modal-open {
     to { transform: rotate(360deg); }
 }
 
+[data-loading-button] {
+    --loading-spinner-color: #ffffff;
+    position: relative;
+}
+
+[data-loading-button][data-loading-tone="dark"] {
+    --loading-spinner-color: #102e52;
+}
+
+.loading-button-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: inherit;
+    color: inherit;
+}
+
+[data-loading-button].is-loading {
+    color: transparent !important;
+    cursor: progress !important;
+    pointer-events: none;
+    transform: none !important;
+}
+
+[data-loading-button].is-loading > * {
+    visibility: hidden !important;
+}
+
+[data-loading-button].is-loading::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border: 2px solid var(--loading-spinner-color);
+    border-right-color: transparent;
+    border-radius: 50%;
+    content: "";
+    animation: loading-button-spin 0.9s linear infinite;
+}
+
+[data-loading-button].is-loading:disabled {
+    opacity: 0.82;
+}
+
+@keyframes loading-button-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
 .material-reader-preview {
     display: block;
     width: 100%;
@@ -390,17 +441,6 @@ img.material-reader-preview {
     cursor: progress;
     opacity: 0.82;
     transform: none !important;
-}
-
-.material-reader-button-loader {
-    display: none;
-    width: 18px;
-    height: 18px;
-}
-
-.material-reader-button.is-submitting .material-reader-button-loader {
-    display: block;
-    animation: material-reader-spin 0.9s linear infinite;
 }
 
 .material-feedback-modal {

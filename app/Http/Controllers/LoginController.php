@@ -149,8 +149,12 @@ class LoginController extends Controller
         try {
             $notificationEvents = $this->notificationEventsForCourses($allUserMoodleCourses);
             $unreadNotificationCount = $this->unreadNotificationCount($notificationEvents);
-            $upcomingDeadlineEvents = $this->upcomingDeadlineEvents($notificationEvents, 5);
-            $courseDeadlineEvents = $this->deadlineEventsByCourse($notificationEvents);
+            $pendingDeadlineEvents = $this->withoutCompletedDeadlineEvents(
+                $notificationEvents,
+                $allUserMoodleCourses,
+            );
+            $upcomingDeadlineEvents = $this->upcomingDeadlineEvents($pendingDeadlineEvents, 5);
+            $courseDeadlineEvents = $this->deadlineEventsByCourse($pendingDeadlineEvents);
         } catch (\Throwable $throwable) {
             $notificationSummaryError = $this->moodleUnavailableMessage($throwable);
         }
@@ -2500,6 +2504,47 @@ class LoginController extends Controller
         }
 
         return $grouped;
+    }
+
+    protected function withoutCompletedDeadlineEvents(array $events, array $courses): array
+    {
+        $completedModulesByCourse = [];
+
+        foreach ($courses as $course) {
+            if (! is_array($course)) {
+                continue;
+            }
+
+            $courseId = (int) ($course['id'] ?? 0);
+            $statuses = $course['progress']['statuses'] ?? [];
+            if ($courseId <= 0 || ! is_array($statuses)) {
+                continue;
+            }
+
+            foreach ($statuses as $status) {
+                if (! $this->activityCompletionIsDone($status)) {
+                    continue;
+                }
+
+                $moduleId = (int) ($status['cmid'] ?? $status['coursemoduleid'] ?? 0);
+                if ($moduleId > 0) {
+                    $completedModulesByCourse[$courseId][$moduleId] = true;
+                }
+            }
+        }
+
+        return array_values(array_filter($events, function ($event) use ($completedModulesByCourse): bool {
+            if (! is_array($event) || ! $this->isDeadlineNotificationEvent($event)) {
+                return true;
+            }
+
+            $courseId = (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0));
+            $moduleId = (int) ($event['cmid'] ?? 0);
+
+            return $courseId <= 0
+                || $moduleId <= 0
+                || ! isset($completedModulesByCourse[$courseId][$moduleId]);
+        }));
     }
 
     protected function deadlineNotificationEvents(array $events): array

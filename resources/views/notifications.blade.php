@@ -23,7 +23,7 @@
                         <h1>Notifikasi</h1>
                         <p>Pantau aktivitas dan batas waktu pembelajaranmu.</p>
                     </div>
-                    <a class="final-back-button" href="{{ route('dashboard') }}" aria-label="Kembali ke dashboard">
+                    <a class="final-back-button" href="{{ route('dashboard') }}" aria-label="Kembali ke dashboard" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>

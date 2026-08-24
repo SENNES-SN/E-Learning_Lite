@@ -36,7 +36,7 @@
                 <header class="achievement-header">
                     <span class="achievement-header-icon" aria-hidden="true"><i data-lucide="award"></i></span>
                     <h1>Pencapaian Saya</h1>
-                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah"><i data-lucide="undo-2"></i></a>
+                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark"><i data-lucide="undo-2"></i></a>
                 </header>
 
                 @if ($achievementError)

@@ -69,7 +69,7 @@
                         <span class="final-assignment-status {{ $isSubmitted ? 'is-completed' : 'is-pending' }}">
                             {{ $isSubmitted ? 'Sudah Dikumpulkan' : 'Belum Dikumpulkan' }}
                         </span>
-                        <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah">
+                        <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                             <i data-lucide="undo-2" aria-hidden="true"></i>
                         </a>
                     @endif
@@ -146,9 +146,9 @@
 
                     <div class="assignment-detail-actions">
                         @if ($isSubmitted)
-                            <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}">Lihat Pengumpulan</a>
+                            <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}" data-loading-button>Lihat Pengumpulan</a>
                         @elseif (! $deadlinePassed)
-                            <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}">Kerjakan Tugas</a>
+                            <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button>Kerjakan Tugas</a>
                         @endif
                     </div>
                 @elseif ($pageMode === 'work')
@@ -200,8 +200,8 @@
                             @endif
 
                             <div class="assignment-work-actions">
-                                <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) }}">Batal</a>
-                                <button class="assignment-primary-button" type="submit">Lanjutkan</button>
+                                <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) }}" data-loading-button data-loading-tone="dark">Batal</a>
+                                <button class="assignment-primary-button" type="submit" data-loading-button>Lanjutkan</button>
                             </div>
                         </form>
                     @else
@@ -233,13 +233,13 @@
 
                     <div class="assignment-confirm-actions">
                         @if (! $isSubmitted)
-                            <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}">Batal</a>
+                            <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button data-loading-tone="dark">Batal</a>
                             <form method="POST" action="{{ route('courses.modules.assignment.final-submit', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}">
                                 @csrf
-                                <button class="assignment-primary-button" type="submit" {{ $submissionFiles->isEmpty() && trim((string) ($assignmentAnswer ?? '')) === '' ? 'disabled' : '' }}>Kumpulkan</button>
+                                <button class="assignment-primary-button" type="submit" data-loading-button {{ $submissionFiles->isEmpty() && trim((string) ($assignmentAnswer ?? '')) === '' ? 'disabled' : '' }}>Kumpulkan</button>
                             </form>
                         @else
-                            <a class="assignment-secondary-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}">Kembali ke Detail Mata Kuliah</a>
+                            <a class="assignment-secondary-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button data-loading-tone="dark">Kembali ke Detail Mata Kuliah</a>
                         @endif
                     </div>
                 @endif

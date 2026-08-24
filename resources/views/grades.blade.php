@@ -58,7 +58,7 @@
                 <header class="final-course-header grade-course-header">
                     <span class="final-course-header-initial" aria-hidden="true">{{ $courseInitials }}</span>
                     <h1>{{ $courseName }}</h1>
-                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah">
+                    <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>

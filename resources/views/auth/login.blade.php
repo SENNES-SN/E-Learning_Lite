@@ -68,7 +68,7 @@
                             </button>
                         </div>
                     </div>
-                    <button class="login-submit" type="submit">Login</button>
+                    <button class="login-submit" type="submit" data-loading-button>Login</button>
                 </form>
             </div>
 

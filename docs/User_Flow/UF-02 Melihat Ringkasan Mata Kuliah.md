@@ -33,7 +33,7 @@ flowchart LR
 ## Alur Utama
 
 1. Mahasiswa membuka dashboard.
-2. Sistem menampilkan ringkasan mata kuliah dan deadline terdekat.
+2. Sistem menampilkan ringkasan mata kuliah dan deadline terdekat untuk aktivitas yang belum diselesaikan.
 3. Mahasiswa memilih salah satu mata kuliah.
 4. Sistem menampilkan detail mata kuliah yang dipilih.
 5. Alur selesai.

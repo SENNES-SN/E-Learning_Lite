@@ -66,9 +66,9 @@ class MaterialCompletionFlowTest extends TestCase
             ->assertSee('Baca Materi')
             ->assertSee(route('moodle.file.download'), false)
             ->assertSee(route('courses.modules.material.complete', ['courseId' => 7, 'moduleId' => 11]), false)
-            ->assertSee("completeForm?.addEventListener('submit'", false)
-            ->assertSee('material-reader-button-loader', false)
-            ->assertDontSee("completeButton?.addEventListener('click'", false)
+            ->assertSee('data-loading-button data-loading-tone="dark"', false)
+            ->assertDontSee('material-reader-button-loader', false)
+            ->assertDontSee("completeForm?.addEventListener('submit'", false)
             ->assertDontSee('Memperbarui status')
             ->assertDontSee('Buka di Moodle');
     }

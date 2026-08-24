@@ -82,7 +82,7 @@
                 <header class="final-course-header">
                     <span class="final-course-header-initial" aria-hidden="true">{{ $courseInitials }}</span>
                     <h1>{{ $courseName }}</h1>
-                    <a class="final-back-button" href="{{ route('dashboard') }}#courses" aria-label="Kembali ke daftar mata kuliah">
+                    <a class="final-back-button" href="{{ route('dashboard') }}#courses" aria-label="Kembali ke daftar mata kuliah" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
                 </header>

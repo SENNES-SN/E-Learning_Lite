@@ -60,7 +60,7 @@
                         <span class="final-quiz-status {{ $quizIsCompleted ? 'is-completed' : 'is-pending' }}">
                             {{ $quizIsCompleted ? 'Sudah Dikerjakan' : 'Belum Dikerjakan' }}
                         </span>
-                        <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah"><i data-lucide="undo-2"></i></a>
+                        <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark"><i data-lucide="undo-2"></i></a>
                     </header>
 
                     @if (($errors->any() && ! $showExpired) || $quizError)
@@ -92,7 +92,7 @@
                         @if (! $quizIsCompleted && ! $accessEnded)
                         <form method="POST" action="{{ route('courses.modules.quiz.start', ['courseId' => $courseId, 'moduleId' => $moduleId]) }}">
                             @csrf
-                            <button class="quiz-primary-button" type="submit" {{ $accessNotStarted ? 'disabled' : '' }}>Kerjakan Kuis</button>
+                            <button class="quiz-primary-button" type="submit" data-loading-button {{ $accessNotStarted ? 'disabled' : '' }}>Kerjakan Kuis</button>
                         </form>
                         @endif
                     </div>
@@ -133,7 +133,7 @@
                     <span class="material-points-star" aria-hidden="true"><i data-lucide="star"></i></span>
                     <div><small>Poin Diperoleh</small><strong>+ {{ $pointsAwarded }} Poin</strong></div>
                 </div>
-                <a class="quiz-result-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-quiz-result-continue>Kembali ke Detail Mata Kuliah</a>
+                <a class="quiz-result-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-quiz-result-continue data-loading-button>Kembali ke Detail Mata Kuliah</a>
             </section>
         </div>
         @endif
