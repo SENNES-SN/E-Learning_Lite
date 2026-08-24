@@ -25,7 +25,7 @@ class GradeFlowTest extends TestCase
             'id' => 7,
             'fullname' => 'Pengantar UI/UX Design',
         ]);
-        $service->shouldReceive('getUserGrades')->once()->with(7)->andReturn([
+        $service->shouldReceive('getUserGrades')->once()->with(7, 21)->andReturn([
             'usergrades' => [[
                 'userid' => 21,
                 'gradeitems' => [

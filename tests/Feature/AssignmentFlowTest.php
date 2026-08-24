@@ -27,8 +27,12 @@ class AssignmentFlowTest extends TestCase
         $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
             'courses' => [['assignments' => [$assignment]]],
         ]);
-        $service->shouldReceive('getEnrolledUsers')->once()->with(7)->andReturn($this->studentUsers());
-        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(55)->andReturn($this->draftStatus());
+
+        $service->shouldReceive('getAssignmentSubmissionStatus')
+            ->twice()
+            ->with(55)
+            ->andReturn($this->draftStatus());
+
         $service->shouldReceive('getUserGrades')->once()->with(7, 21)->andReturn([]);
 
         $this->app->instance(MoodleService::class, $service);
@@ -55,7 +59,6 @@ class AssignmentFlowTest extends TestCase
         $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
             'courses' => [['assignments' => [$this->assignmentData(time() - 60)]]],
         ]);
-        $service->shouldReceive('getEnrolledUsers')->once()->with(7)->andReturn($this->studentUsers());
         $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(55)->andReturn($this->draftStatus());
         $service->shouldNotReceive('saveAssignmentSubmission');
 
@@ -90,7 +93,6 @@ class AssignmentFlowTest extends TestCase
         $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
             'courses' => [['assignments' => [$this->assignmentData(time() + 86400)]]],
         ]);
-        $service->shouldReceive('getEnrolledUsers')->once()->with(7)->andReturn($this->studentUsers());
         $service->shouldReceive('getAssignmentSubmissionStatus')
             ->twice()
             ->with(55)
@@ -111,7 +113,7 @@ class AssignmentFlowTest extends TestCase
         ]));
 
         $response
-            ->assertRedirect(route('courses.modules.show', ['courseId' => 7, 'moduleId' => 11]).'?mode=confirm')
+            ->assertRedirect(route('courses.modules.show', ['courseId' => 7, 'moduleId' => 11]) . '?mode=confirm')
             ->assertSessionHas('assignment_completion_feedback.points_awarded', 10)
             ->assertSessionHas('assignment_completion_feedback.badge.name', 'Goal Getter');
     }

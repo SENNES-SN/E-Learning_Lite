@@ -39,7 +39,7 @@ class MoodleService
         }
 
         $response = $request
-            ->post($baseUrl.'/login/token.php', [
+            ->post($baseUrl . '/login/token.php', [
                 'username' => $username,
                 'password' => $password,
                 'service' => $serviceName,
@@ -73,20 +73,6 @@ class MoodleService
 
     public function getUserGrades(int $courseId, ?int $userId = null): array
     {
-        $usersInCourse = $this->getEnrolledUsers($courseId);
-
-        if (! is_array($usersInCourse)) {
-            throw new RuntimeException("Failed to fetch enrolled users for course ID {$courseId}.");
-        }
-
-        $userEmailMap = [];
-
-        foreach ($usersInCourse as $user) {
-            if (isset($user['id'], $user['email'])) {
-                $userEmailMap[$user['id']] = $user['email'];
-            }
-        }
-
         $parameters = [
             'courseid' => $courseId,
         ];
@@ -95,19 +81,15 @@ class MoodleService
             $parameters['userid'] = $userId;
         }
 
-        $gradesReport = $this->request('gradereport_user_get_grade_items', $parameters);
+        $gradesReport = $this->request(
+            'gradereport_user_get_grade_items',
+            $parameters
+        );
 
         $userGrades = $gradesReport['usergrades'] ?? [];
 
-        foreach ($userGrades as &$userGrade) {
-            $userId = $userGrade['userid'] ?? null;
-            $userGrade['email'] = $userId && isset($userEmailMap[$userId])
-                ? $userEmailMap[$userId]
-                : '';
-        }
-        unset($userGrade);
-
         $gradeItems = [];
+
         if (! empty($userGrades[0]['gradeitems'])) {
             foreach ($userGrades[0]['gradeitems'] as $item) {
                 $gradeItems[] = [
@@ -176,17 +158,19 @@ class MoodleService
     {
         $lastThrowable = null;
 
-        foreach ([
-            fn () => $this->request('enrol_self_enrol_user', [
-                'courseid' => $courseId,
-                'password' => $password,
-            ], MoodleRest::METHOD_POST),
-            fn () => $this->request('uad_create_selfenrol', [
-                'courseid' => $courseId,
-                'password' => $password,
-                'userid' => $userId,
-            ], MoodleRest::METHOD_POST),
-        ] as $attempt) {
+        foreach (
+            [
+                fn() => $this->request('enrol_self_enrol_user', [
+                    'courseid' => $courseId,
+                    'password' => $password,
+                ], MoodleRest::METHOD_POST),
+                fn() => $this->request('uad_create_selfenrol', [
+                    'courseid' => $courseId,
+                    'password' => $password,
+                    'userid' => $userId,
+                ], MoodleRest::METHOD_POST),
+            ] as $attempt
+        ) {
             try {
                 $response = $attempt();
                 $this->assertSelfEnrollSucceeded($response);
@@ -293,6 +277,13 @@ class MoodleService
         ]);
     }
 
+    public function getRecentlyAccessedItems(): mixed
+    {
+        return $this->request('block_recentlyaccesseditems_get_recent_items', [
+            'limit' => 2,
+        ]);
+    }
+
     public function markActivityComplete(int $courseModuleId): mixed
     {
         return $this->request('core_completion_update_activity_completion_status_manually', [
@@ -329,12 +320,14 @@ class MoodleService
     {
         $lastThrowable = null;
 
-        foreach ([
-            ['quizid' => $quizId],
-            ['quizid' => $quizId, 'preflightdata' => []],
-            ['quizid' => $quizId, 'forcenew' => false],
-            ['quizid' => $quizId, 'forcenew' => 0, 'preflightdata' => []],
-        ] as $parameters) {
+        foreach (
+            [
+                ['quizid' => $quizId],
+                ['quizid' => $quizId, 'preflightdata' => []],
+                ['quizid' => $quizId, 'forcenew' => false],
+                ['quizid' => $quizId, 'forcenew' => 0, 'preflightdata' => []],
+            ] as $parameters
+        ) {
             try {
                 return $this->request('mod_quiz_start_attempt', $parameters, MoodleRest::METHOD_POST);
             } catch (\Throwable $throwable) {
@@ -455,7 +448,7 @@ class MoodleService
         }
 
         $response = $request
-            ->post($this->requireBaseUrl().'/webservice/upload.php', [
+            ->post($this->requireBaseUrl() . '/webservice/upload.php', [
                 'token' => $this->requireToken(),
                 'filearea' => 'draft',
                 'itemid' => $itemId ?? 0,
@@ -683,7 +676,7 @@ class MoodleService
 
     protected function serverAddress(): string
     {
-        return $this->requireBaseUrl().'/webservice/rest/server.php';
+        return $this->requireBaseUrl() . '/webservice/rest/server.php';
     }
 
     protected function requireBaseUrl(): string

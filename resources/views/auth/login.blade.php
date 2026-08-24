@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <title>Login E-Learning Lite</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="login-page">
     <main class="login-layout">
         <section class="login-brand-panel" aria-labelledby="product-name">
@@ -40,8 +42,7 @@
                                 value="{{ old('username') }}"
                                 placeholder="Masukkan Username"
                                 autocomplete="username"
-                                required
-                            >
+                                required>
                         </div>
                     </div>
 
@@ -55,33 +56,31 @@
                                 type="password"
                                 placeholder="Masukkan Password"
                                 autocomplete="current-password"
-                                required
-                            >
+                                required>
                             <button
                                 class="login-password-toggle"
                                 type="button"
                                 data-password-toggle
                                 aria-controls="password"
-                                aria-label="Tampilkan password"
-                            >
+                                aria-label="Tampilkan password">
                                 <i class="password-hidden-icon" data-lucide="eye-off" aria-hidden="true"></i>
                                 <i class="password-visible-icon" data-lucide="eye" aria-hidden="true" hidden></i>
                             </button>
                         </div>
                     </div>
-
                     <button class="login-submit" type="submit">Login</button>
                 </form>
             </div>
 
             @if ($errors->any())
-                <div class="login-feedback-overlay" data-login-feedback>
-                    <div class="login-feedback" role="alert" aria-live="assertive">
-                        {{ $errors->first() }}
-                    </div>
+            <div class="login-feedback-overlay" data-login-feedback>
+                <div class="login-feedback" role="alert" aria-live="assertive">
+                    {{ $errors->first() }}
                 </div>
+            </div>
             @endif
         </section>
     </main>
 </body>
+
 </html>

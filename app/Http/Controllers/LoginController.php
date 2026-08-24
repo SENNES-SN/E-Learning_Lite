@@ -128,12 +128,14 @@ class LoginController extends Controller
         if ($searchQuery !== '' && is_array($moodleCourses)) {
             $needle = mb_strtolower($searchQuery);
             $moodleCourses = array_values(array_filter($moodleCourses, function ($course) use ($needle): bool {
-                foreach ([
-                    $course['fullname'] ?? null,
-                    $course['shortname'] ?? null,
-                    $course['summary'] ?? null,
-                    $course['id'] ?? null,
-                ] as $value) {
+                foreach (
+                    [
+                        $course['fullname'] ?? null,
+                        $course['shortname'] ?? null,
+                        $course['summary'] ?? null,
+                        $course['id'] ?? null,
+                    ] as $value
+                ) {
                     if ($value !== null && str_contains(mb_strtolower((string) $value), $needle)) {
                         return true;
                     }
@@ -185,7 +187,7 @@ class LoginController extends Controller
         $courseIds = collect($courses)
             ->pluck('id')
             ->filter()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->values()
             ->all();
         $events = [];
@@ -248,7 +250,8 @@ class LoginController extends Controller
         }
 
         if ($courseId <= 0) {
-            return redirect()->route('dashboard')->withErrors(['courseid' => 'ID mata kuliah tidak valid.']);
+            return redirect()->route('dashboard')
+                ->withErrors(['courseid' => 'ID mata kuliah tidak valid.']);
         }
 
         session()->put('active_course_id', $courseId);
@@ -257,11 +260,77 @@ class LoginController extends Controller
         $contents = [];
         $contentError = null;
         $courseProgress = null;
+        $assignmentCompletionStatuses = [];
 
         try {
             $course = $this->activeMoodleService()->getCourse($courseId);
             $contents = $this->activeMoodleService()->getCourseContents($courseId);
+            $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+            $recentItems = $this->activeMoodleService()->getRecentlyAccessedItems();
+
+            $trackableMaterialTypes = [
+                'resource',
+                'page',
+                'book',
+                'folder',
+                'url',
+                'label',
+            ];
+
+            foreach (is_array($recentItems) ? $recentItems : [] as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+
+                $modname = strtolower((string) ($item['modname'] ?? ''));
+                $recentCourseId = (int) ($item['courseid'] ?? 0);
+                $cmid = (int) ($item['cmid'] ?? 0);
+
+                if (
+                    $recentCourseId <= 0 ||
+                    $cmid <= 0 ||
+                    $recentCourseId !== $courseId ||
+                    ! in_array($modname, $trackableMaterialTypes, true)
+                ) {
+                    continue;
+                }
+
+                $this->rememberLocalActivityCompletion($courseId, $cmid);
+            }
             $courseProgress = $this->currentUserCourseProgress($courseId, $contents);
+            $assignments = $this->activeMoodleService()->getAssignments($courseId);
+
+            foreach ($contents as $section) {
+                foreach (($section['modules'] ?? []) as $module) {
+                    if (($module['modname'] ?? '') !== 'assign') {
+                        continue;
+                    }
+
+                    $assignment = $this->findAssignmentForModule(
+                        $assignments,
+                        $module,
+                    );
+
+                    if (empty($assignment['id'])) {
+                        continue;
+                    }
+
+                    try {
+                        $submissionStatus = $this->activeMoodleService()
+                            ->getAssignmentSubmissionStatus((int) $assignment['id']);
+
+                        $settings = $this->assignmentSubmissionSettings(
+                            $assignment,
+                            $submissionStatus
+                        );
+
+                        $assignmentCompletionStatuses[(int) $module['id']] =
+                            (bool) $settings['is_submitted'];
+                    } catch (\Throwable) {
+                        $assignmentCompletionStatuses[(int) $module['id']] = false;
+                    }
+                }
+            }
         } catch (\Throwable $throwable) {
             $contentError = $this->moodleUnavailableMessage($throwable);
         }
@@ -272,6 +341,7 @@ class LoginController extends Controller
             'contents' => is_array($contents) ? $contents : [],
             'contentError' => $contentError,
             'courseProgress' => $courseProgress,
+            'assignmentCompletionStatuses' => $assignmentCompletionStatuses,
         ]);
     }
 
@@ -355,6 +425,8 @@ class LoginController extends Controller
         $contents = null;
         $courseProgress = null;
         $assignmentAnswer = null;
+        $assignments = null;
+        $quizzes = null;
 
         try {
             $course = $this->activeMoodleService()->getCourse($courseId);
@@ -364,13 +436,28 @@ class LoginController extends Controller
                 $moduleId,
             );
 
-            if ($module && in_array(strtolower((string) ($module['modname'] ?? '')), ['resource', 'page', 'book', 'folder', 'url', 'label', 'assign', 'quiz'], true)) {
-                $courseProgress = $this->currentUserCourseProgress($courseId, $contents);
+            if ($module && in_array(strtolower((string) ($module['modname'] ?? '')), ['resource', 'page', 'book', 'folder', 'url', 'assign', 'quiz'], true)) {
+                $moduleType = strtolower((string) ($module['modname'] ?? ''));
+
+                if ($moduleType === 'assign') {
+                    $assignments = $this->activeMoodleService()->getAssignments($courseId);
+                }
+
+                if ($moduleType === 'quiz') {
+                    $quizzes = $this->activeMoodleService()->getQuizzes($courseId);
+                }
+
+                $courseProgress = $this->currentUserCourseProgress(
+                    $courseId,
+                    $contents,
+                    $assignments,
+                    $quizzes
+                );
             }
 
             if (($module['modname'] ?? null) === 'assign') {
                 $assignment = $this->findAssignmentForModule(
-                    $this->activeMoodleService()->getAssignments($courseId),
+                    $assignments,
                     $module,
                 );
 
@@ -390,7 +477,7 @@ class LoginController extends Controller
                 try {
                     $canPreviewQuizAsTeacher = $this->currentUserCanTeachCourse($courseId);
                     $quiz = $this->findQuizForModule(
-                        $this->activeMoodleService()->getQuizzes($courseId),
+                        $quizzes,
                         $module,
                     );
                     $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
@@ -399,6 +486,10 @@ class LoginController extends Controller
                         $quizAttempts = is_array($attemptResponse) && is_array($attemptResponse['attempts'] ?? null)
                             ? $attemptResponse['attempts']
                             : [];
+                        $gradesData = $this->activeMoodleService()->getUserGrades(
+                            $courseId,
+                            $currentUserId
+                        );
                     }
                 } catch (\Throwable $throwable) {
                     $quizError = $this->moodleUnavailableMessage($throwable);
@@ -436,7 +527,7 @@ class LoginController extends Controller
             'moodleToken' => session('moodle_token') ?: config('moodle.token'),
         ];
 
-        if ($module && in_array(strtolower((string) ($module['modname'] ?? '')), ['resource', 'page', 'book', 'folder', 'url', 'label'], true)) {
+        if ($module && in_array(strtolower((string) ($module['modname'] ?? '')), ['resource', 'page', 'book', 'folder', 'url'], true)) {
             return view('material_detail', $viewData);
         }
 
@@ -476,7 +567,7 @@ class LoginController extends Controller
             [$module] = $this->findModuleInCourseContents($contents, $moduleId);
             $moduleType = strtolower((string) ($module['modname'] ?? ''));
 
-            if (! $module || ! in_array($moduleType, ['resource', 'page', 'book', 'folder', 'url', 'label'], true)) {
+            if (! $module || ! in_array($moduleType, ['resource', 'page', 'book', 'folder', 'url'], true)) {
                 return back()->withErrors(['material' => 'Materi yang ingin diselesaikan tidak ditemukan.']);
             }
 
@@ -495,7 +586,7 @@ class LoginController extends Controller
 
             $remoteAfterStatuses = $remoteBeforeStatuses;
             $hasRemoteCompletion = collect($remoteBeforeStatuses)->contains(
-                fn ($status): bool => is_array($status)
+                fn($status): bool => is_array($status)
                     && (int) ($status['cmid'] ?? $status['coursemoduleid'] ?? 0) === $moduleId,
             );
 
@@ -530,7 +621,7 @@ class LoginController extends Controller
                 ->with('material_completion_feedback', $feedback);
         } catch (\Throwable $throwable) {
             return back()->withErrors([
-                'material' => 'Status materi belum berhasil diperbarui. '.$this->moodleUnavailableMessage($throwable),
+                'material' => 'Status materi belum berhasil diperbarui. ' . $this->moodleUnavailableMessage($throwable),
             ]);
         }
     }
@@ -620,7 +711,7 @@ class LoginController extends Controller
         }
 
         try {
-            [$module, , $quiz] = $this->resolveQuizModule($courseId, $moduleId);
+            [$module,, $quiz] = $this->resolveQuizModule($courseId, $moduleId);
             $previewMode = $request->input('mode') === 'preview' && $this->currentUserCanTeachCourse($courseId);
             $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
             if ($currentUserId <= 0) {
@@ -658,7 +749,7 @@ class LoginController extends Controller
                 'mode' => $previewMode ? 'preview' : null,
             ]);
         } catch (\Throwable $throwable) {
-            return back()->withErrors(['quiz' => 'Kuis belum dapat dimulai. '.$this->moodleUnavailableMessage($throwable)]);
+            return back()->withErrors(['quiz' => 'Kuis belum dapat dimulai. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -703,7 +794,7 @@ class LoginController extends Controller
         } catch (\Throwable $throwable) {
             return redirect()
                 ->route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId])
-                ->withErrors(['quiz' => 'Kuis belum dapat dibuka. '.$this->moodleUnavailableMessage($throwable)]);
+                ->withErrors(['quiz' => 'Kuis belum dapat dibuka. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -741,7 +832,7 @@ class LoginController extends Controller
         }
 
         try {
-            [, , $quiz] = $this->resolveQuizModule($courseId, $moduleId);
+            [,, $quiz] = $this->resolveQuizModule($courseId, $moduleId);
             $attemptData = $this->activeMoodleService()->getQuizAttemptData(
                 $attemptId,
                 max(0, (int) ($payload['page'] ?? 0)),
@@ -848,7 +939,7 @@ class LoginController extends Controller
                     ? 'Pratinjau kuis diperbarui.'
                     : 'Jawaban kuis berhasil disimpan.');
         } catch (\Throwable $throwable) {
-            return back()->withErrors(['quiz' => 'Jawaban kuis belum berhasil dikirim. '.$this->moodleUnavailableMessage($throwable)]);
+            return back()->withErrors(['quiz' => 'Jawaban kuis belum berhasil dikirim. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -890,7 +981,7 @@ class LoginController extends Controller
         } catch (\Throwable $throwable) {
             return back()
                 ->withInput($request->except('password'))
-                ->withErrors(['password' => 'Gagal mendaftar ke kursus: '.$this->moodleUnavailableMessage($throwable)]);
+                ->withErrors(['password' => 'Gagal mendaftar ke kursus: ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -986,16 +1077,16 @@ class LoginController extends Controller
             $payload = $request->validate([
                 'answer' => ['nullable', 'string', 'max:10000'],
                 'replace_files' => ['nullable', 'boolean'],
-                'answer_files' => ['nullable', 'array', 'max:'.$uploadLimit],
-                'answer_files.*' => ['nullable', 'file', 'max:'.$maxUploadKilobytes],
+                'answer_files' => ['nullable', 'array', 'max:' . $uploadLimit],
+                'answer_files.*' => ['nullable', 'file', 'max:' . $maxUploadKilobytes],
             ], [
                 'answer.max' => 'Jawaban tugas maksimal 10.000 karakter.',
                 'answer_files.array' => 'Lampiran jawaban harus berupa daftar file.',
                 'answer_files.max' => $replaceFiles
-                    ? 'Jumlah file pengganti maksimal '.$assignmentSettings['max_files'].' file.'
-                    : 'Sisa slot upload hanya '.$assignmentSettings['remaining_files'].' file.',
+                    ? 'Jumlah file pengganti maksimal ' . $assignmentSettings['max_files'] . ' file.'
+                    : 'Sisa slot upload hanya ' . $assignmentSettings['remaining_files'] . ' file.',
                 'answer_files.*.file' => 'Lampiran jawaban harus berupa file.',
-                'answer_files.*.max' => 'Ukuran tiap file jawaban maksimal '.$assignmentSettings['max_file_size_label'].'.',
+                'answer_files.*.max' => 'Ukuran tiap file jawaban maksimal ' . $assignmentSettings['max_file_size_label'] . '.',
             ]);
 
             $answer = trim((string) ($payload['answer'] ?? ''));
@@ -1027,10 +1118,10 @@ class LoginController extends Controller
 
             foreach ($answerFiles as $file) {
                 $extension = strtolower($file->getClientOriginalExtension());
-                if ($assignmentSettings['accepted_extensions'] !== [] && ! in_array('.'.$extension, $assignmentSettings['accepted_extensions'], true)) {
+                if ($assignmentSettings['accepted_extensions'] !== [] && ! in_array('.' . $extension, $assignmentSettings['accepted_extensions'], true)) {
                     return back()
                         ->withInput()
-                        ->withErrors(['answer_files' => 'Format file .'.$extension.' tidak diterima. Format yang diizinkan: '.$assignmentSettings['accepted_types_label'].'.']);
+                        ->withErrors(['answer_files' => 'Format file .' . $extension . ' tidak diterima. Format yang diizinkan: ' . $assignmentSettings['accepted_types_label'] . '.']);
                 }
             }
 
@@ -1058,12 +1149,12 @@ class LoginController extends Controller
             );
 
             return redirect()
-                ->to(route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]).'?mode=confirm')
+                ->to(route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) . '?mode=confirm')
                 ->with('success', 'Jawaban tugas berhasil disiapkan. Periksa kembali sebelum mengumpulkan.');
         } catch (\Throwable $throwable) {
             return back()
                 ->withInput()
-                ->withErrors(['answer' => 'Jawaban belum berhasil dikirim. '.$this->moodleUnavailableMessage($throwable)]);
+                ->withErrors(['answer' => 'Jawaban belum berhasil dikirim. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -1117,7 +1208,7 @@ class LoginController extends Controller
             $deleteFilepath = $payload['filepath'] ?? '/';
             $remainingFiles = array_values(array_filter(
                 $assignmentSettings['submission_files'],
-                fn ($file): bool => ! (
+                fn($file): bool => ! (
                     ($file['filename'] ?? '') === $deleteFilename
                     && ($file['filepath'] ?? '/') === $deleteFilepath
                 ),
@@ -1137,7 +1228,7 @@ class LoginController extends Controller
 
             $updatedStatus = $this->activeMoodleService()->getAssignmentSubmissionStatus((int) $assignment['id']);
             $stillExists = collect($this->submissionFiles($updatedStatus))->contains(
-                fn ($file): bool => ($file['filename'] ?? '') === $deleteFilename
+                fn($file): bool => ($file['filename'] ?? '') === $deleteFilename
                     && ($file['filepath'] ?? '/') === $deleteFilepath,
             );
 
@@ -1149,7 +1240,7 @@ class LoginController extends Controller
                 ->route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId])
                 ->with('success', 'File berhasil dihapus.');
         } catch (\Throwable $throwable) {
-            return back()->withErrors(['delete_draft' => 'File belum berhasil dihapus. '.$this->moodleUnavailableMessage($throwable)]);
+            return back()->withErrors(['delete_draft' => 'File belum berhasil dihapus. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -1265,10 +1356,10 @@ class LoginController extends Controller
             }
 
             return redirect()
-                ->to(route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]).'?mode=confirm')
+                ->to(route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) . '?mode=confirm')
                 ->with('assignment_completion_feedback', $feedback);
         } catch (\Throwable $throwable) {
-            return back()->withErrors(['final_submit' => 'Jawaban belum berhasil dikumpulkan. '.$this->moodleUnavailableMessage($throwable)]);
+            return back()->withErrors(['final_submit' => 'Jawaban belum berhasil dikumpulkan. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -1281,8 +1372,10 @@ class LoginController extends Controller
         }
 
         $courseId = (int) $request->query('courseid', 1);
+
         if ($courseId <= 0) {
-            return redirect()->route('dashboard')->withErrors(['courseid' => 'ID mata kuliah tidak valid.']);
+            return redirect()->route('dashboard')
+                ->withErrors(['courseid' => 'ID mata kuliah tidak valid.']);
         }
 
         session()->put('active_course_id', $courseId);
@@ -1291,6 +1384,15 @@ class LoginController extends Controller
         $gradesData = [];
         $gradeError = null;
 
+        $sessionUser = session('moodle_user', []);
+        $userId = is_array($sessionUser)
+            ? (int) ($sessionUser['id'] ?? 0)
+            : 0;
+
+        if ($userId <= 0) {
+            return redirect()->route('login');
+        }
+
         try {
             $course = $this->activeMoodleService()->getCourse($courseId);
         } catch (\Throwable) {
@@ -1298,7 +1400,8 @@ class LoginController extends Controller
         }
 
         try {
-            $gradesData = $this->activeMoodleService()->getUserGrades($courseId);
+            $gradesData = $this->activeMoodleService()
+                ->getUserGrades($courseId, $userId);
         } catch (\Throwable) {
             $gradeError = 'Nilai belum dapat dimuat. Silakan coba lagi beberapa saat.';
         }
@@ -1326,10 +1429,10 @@ class LoginController extends Controller
         $sessionUser = session('moodle_user', []);
         $currentUserId = (int) (is_array($sessionUser) ? ($sessionUser['id'] ?? 0) : 0);
         $currentUserGrade = collect($userGrades)->first(
-            fn ($grade): bool => is_array($grade) && (int) ($grade['userid'] ?? 0) === $currentUserId,
+            fn($grade): bool => is_array($grade) && (int) ($grade['userid'] ?? 0) === $currentUserId,
         );
         if (! is_array($currentUserGrade)) {
-            $currentUserGrade = collect($userGrades)->first(fn ($grade): bool => is_array($grade));
+            $currentUserGrade = collect($userGrades)->first(fn($grade): bool => is_array($grade));
         }
 
         $gradeItems = is_array($currentUserGrade['gradeitems'] ?? null)
@@ -1492,8 +1595,12 @@ class LoginController extends Controller
         }, $courses);
     }
 
-    protected function currentUserCourseProgress(int $courseId, mixed $contents = null): ?array
-    {
+    protected function currentUserCourseProgress(
+        int $courseId,
+        mixed $contents = null,
+        mixed $assignments = null,
+        mixed $quizzes = null
+    ): ?array {
         $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
         if ($courseId <= 0 || $currentUserId <= 0) {
             return null;
@@ -1512,6 +1619,152 @@ class LoginController extends Controller
             $completion = $this->activeMoodleService()->getActivityCompletionStatus($courseId, $currentUserId);
             $statuses = is_array($completion) ? ($completion['statuses'] ?? []) : [];
             $statuses = $this->withCourseActivityStatuses($contents, is_array($statuses) ? $statuses : []);
+
+            try {
+                if ($assignments === null) {
+                    $assignments = $this->activeMoodleService()->getAssignments($courseId);
+                }
+
+                foreach ($contents as $section) {
+                    foreach (($section['modules'] ?? []) as $module) {
+                        if (($module['modname'] ?? '') !== 'assign') {
+                            continue;
+                        }
+
+                        $assignment = $this->findAssignmentForModule(
+                            $assignments,
+                            $module,
+                        );
+
+                        if (empty($assignment['id'])) {
+                            continue;
+                        }
+
+                        try {
+                            $submissionStatus = $this->activeMoodleService()
+                                ->getAssignmentSubmissionStatus((int) $assignment['id']);
+
+                            $settings = $this->assignmentSubmissionSettings(
+                                $assignment,
+                                $submissionStatus
+                            );
+
+                            if ($settings['is_submitted']) {
+                                $statuses = $this->withCompletedActivityStatus(
+                                    $statuses,
+                                    (int) $module['id']
+                                );
+                            }
+                        } catch (\Throwable) {
+                            continue;
+                        }
+                    }
+                }
+            } catch (\Throwable) {
+                // Jika data submission tidak tersedia, gunakan completion Moodle seperti biasa.
+            }
+
+            try {
+                if ($quizzes === null) {
+                    $quizzes = $this->activeMoodleService()->getQuizzes($courseId);
+                }
+
+                foreach ($contents as $section) {
+                    foreach (($section['modules'] ?? []) as $module) {
+                        if (($module['modname'] ?? '') !== 'quiz') {
+                            continue;
+                        }
+
+                        $quiz = $this->findQuizForModule(
+                            $quizzes,
+                            $module,
+                        );
+
+                        if (empty($quiz['id'])) {
+                            continue;
+                        }
+
+                        try {
+                            $attemptResponse = $this->activeMoodleService()
+                                ->getQuizUserAttempts(
+                                    (int) $quiz['id'],
+                                    $currentUserId,
+                                    'all'
+                                );
+
+                            $attempts = is_array($attemptResponse)
+                                ? ($attemptResponse['attempts'] ?? [])
+                                : [];
+
+                            $hasFinishedAttempt = collect($attempts)->contains(
+                                fn($attempt): bool =>
+                                is_array($attempt)
+                                    && strtolower((string) ($attempt['state'] ?? '')) === 'finished'
+                            );
+
+                            if ($hasFinishedAttempt) {
+                                $statuses = $this->withCompletedActivityStatus(
+                                    $statuses,
+                                    (int) $module['id']
+                                );
+                            }
+                        } catch (\Throwable) {
+                            continue;
+                        }
+                    }
+                }
+            } catch (\Throwable) {
+                // Jika data attempt kuis tidak tersedia,gunakan completion Moodle seperti biasa.
+            }
+            try {
+                $recentResponse = $this->activeMoodleService()->getRecentlyAccessedItems();
+
+                $recentItems = is_array($recentResponse)
+                    ? $recentResponse
+                    : [];
+                $accessedCmids = collect($recentItems)
+                    ->filter(
+                        fn($item): bool =>
+                        is_array($item)
+                            && (int) ($item['courseid'] ?? 0) === $courseId
+                            && (int) ($item['userid'] ?? 0) === $currentUserId
+                    )
+                    ->pluck('cmid')
+                    ->map(fn($cmid): int => (int) $cmid)
+                    ->filter(fn($cmid): bool => $cmid > 0)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                foreach ($contents as $section) {
+                    foreach (($section['modules'] ?? []) as $module) {
+                        if (($module['modname'] ?? '') !== 'resource') {
+                            continue;
+                        }
+
+                        $moduleId = (int) ($module['id'] ?? 0);
+
+                        if ($moduleId <= 0) {
+                            continue;
+                        }
+
+                        if (in_array($moduleId, $accessedCmids, true)) {
+                            $statuses = $this->withCompletedActivityStatus(
+                                $statuses,
+                                $moduleId
+                            );
+
+                            $this->rememberLocalActivityCompletion(
+                                $courseId,
+                                $moduleId
+                            );
+                        }
+                    }
+                }
+            } catch (\Throwable) {
+                // Jika data recently accessed tidak tersedia,
+                // gunakan completion Moodle seperti biasa.
+            }
             $statuses = $this->withLocalCompletionOverrides($courseId, $statuses);
             $total = is_array($statuses) ? count($statuses) : 0;
             $completed = 0;
@@ -1605,7 +1858,7 @@ class LoginController extends Controller
             $message = 'Leaderboard belum dapat dimuat sepenuhnya.';
         }
 
-        $hasCurrentStudent = collect($students)->contains(fn ($student) => (int) ($student['id'] ?? 0) === $currentUserId);
+        $hasCurrentStudent = collect($students)->contains(fn($student) => (int) ($student['id'] ?? 0) === $currentUserId);
         if ($currentUserId > 0 && ! $hasCurrentStudent) {
             $complete = false;
             $message ??= 'Sebagian data leaderboard belum tersedia.';
@@ -1666,7 +1919,7 @@ class LoginController extends Controller
         }
         unset($row);
 
-        $currentRow = collect($rows)->first(fn ($row) => (bool) ($row['is_current'] ?? false));
+        $currentRow = collect($rows)->first(fn($row) => (bool) ($row['is_current'] ?? false));
 
         return [
             'rows' => $rows,
@@ -1703,7 +1956,7 @@ class LoginController extends Controller
             return false;
         }));
 
-        usort($students, fn ($a, $b) => strcasecmp($this->displayUserName($a), $this->displayUserName($b)));
+        usort($students, fn($a, $b) => strcasecmp($this->displayUserName($a), $this->displayUserName($b)));
 
         return $students;
     }
@@ -1860,7 +2113,7 @@ class LoginController extends Controller
 
     protected function displayUserName(array $user): string
     {
-        return trim((string) ($user['fullname'] ?? (($user['firstname'] ?? '').' '.($user['lastname'] ?? '')))) ?: 'Mahasiswa #'.($user['id'] ?? '-');
+        return trim((string) ($user['fullname'] ?? (($user['firstname'] ?? '') . ' ' . ($user['lastname'] ?? '')))) ?: 'Mahasiswa #' . ($user['id'] ?? '-');
     }
 
     protected function roleLabels(array $user): string
@@ -1886,7 +2139,7 @@ class LoginController extends Controller
         $enrolledIds = collect($enrolledCourses)
             ->pluck('id')
             ->filter()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->all();
         $enrolledIds = array_flip($enrolledIds);
 
@@ -1940,14 +2193,16 @@ class LoginController extends Controller
 
     protected function courseMatchesSearch(array $course, string $needle): bool
     {
-        foreach ([
-            $course['fullname'] ?? null,
-            $course['displayname'] ?? null,
-            $course['shortname'] ?? null,
-            $course['idnumber'] ?? null,
-            $course['summary'] ?? null,
-            $course['id'] ?? null,
-        ] as $value) {
+        foreach (
+            [
+                $course['fullname'] ?? null,
+                $course['displayname'] ?? null,
+                $course['shortname'] ?? null,
+                $course['idnumber'] ?? null,
+                $course['summary'] ?? null,
+                $course['id'] ?? null,
+            ] as $value
+        ) {
             if ($value !== null && str_contains(mb_strtolower((string) $value), $needle)) {
                 return true;
             }
@@ -1975,7 +2230,7 @@ class LoginController extends Controller
             $events = $calendarResponse['events'];
         }
 
-        usort($events, fn ($a, $b) => (int) ($a['timesort'] ?? $a['timestart'] ?? 0) <=> (int) ($b['timesort'] ?? $b['timestart'] ?? 0));
+        usort($events, fn($a, $b) => (int) ($a['timesort'] ?? $a['timestart'] ?? 0) <=> (int) ($b['timesort'] ?? $b['timestart'] ?? 0));
 
         return $events;
     }
@@ -1986,7 +2241,7 @@ class LoginController extends Controller
         $courseIds = collect($courses)
             ->pluck('id')
             ->filter()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->values()
             ->all();
 
@@ -2086,7 +2341,7 @@ class LoginController extends Controller
             }
         }
 
-        return array_values(array_filter($events, fn ($event): bool => $this->isRelevantNotificationEvent($event)));
+        return array_values(array_filter($events, fn($event): bool => $this->isRelevantNotificationEvent($event)));
     }
 
     protected function moduleActivityEvent(array $module, array $section, int $courseId, string $courseName): ?array
@@ -2101,7 +2356,7 @@ class LoginController extends Controller
         $eventType = match ($moduleName) {
             'assign' => 'tugas',
             'quiz' => 'kuis',
-            'url', 'resource', 'page', 'book', 'folder', 'label', 'lesson', 'scorm', 'wiki', 'glossary' => 'materi',
+            'url', 'resource', 'page', 'book', 'folder', 'lesson', 'scorm', 'wiki', 'glossary' => 'materi',
             default => 'aktivitas',
         };
 
@@ -2139,7 +2394,7 @@ class LoginController extends Controller
                 || str_contains(mb_strtolower($label), 'batas');
 
             $events[] = $this->moodleNotificationEvent([
-                'name' => ($module['name'] ?? 'Aktivitas Pembelajaran').($label !== '' ? ' - '.$label : ''),
+                'name' => ($module['name'] ?? 'Aktivitas Pembelajaran') . ($label !== '' ? ' - ' . $label : ''),
                 'courseid' => $courseId,
                 'course_name' => $courseName,
                 'cmid' => $module['id'] ?? null,
@@ -2160,7 +2415,7 @@ class LoginController extends Controller
         $time = (int) ($event['time'] ?? 0);
 
         return [
-            'id' => 'lite-'.$this->notificationEventKey([
+            'id' => 'lite-' . $this->notificationEventKey([
                 'id' => $event['id'] ?? null,
                 'courseid' => $event['courseid'] ?? null,
                 'instance' => $event['instance'] ?? null,
@@ -2203,7 +2458,7 @@ class LoginController extends Controller
         }
 
         $events = array_values($unique);
-        usort($events, fn ($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
+        usort($events, fn($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
 
         return $events;
     }
@@ -2216,7 +2471,7 @@ class LoginController extends Controller
             return is_array($event) && $this->notificationEventTime($event) >= $now;
         }));
 
-        usort($events, fn ($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
+        usort($events, fn($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
 
         return array_slice($events, 0, $limit);
     }
@@ -2240,7 +2495,7 @@ class LoginController extends Controller
         }
 
         foreach ($grouped as $courseId => $courseEvents) {
-            usort($courseEvents, fn ($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
+            usort($courseEvents, fn($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
             $grouped[$courseId] = $limit === null ? $courseEvents : array_slice($courseEvents, 0, $limit);
         }
 
@@ -2253,7 +2508,7 @@ class LoginController extends Controller
             return is_array($event) && $this->isDeadlineNotificationEvent($event);
         }));
 
-        usort($events, fn ($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
+        usort($events, fn($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
 
         return $events;
     }
@@ -2344,21 +2599,21 @@ class LoginController extends Controller
     {
         $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
 
-        return 'read_notification_events.'.($userId > 0 ? $userId : session('username', 'guest'));
+        return 'read_notification_events.' . ($userId > 0 ? $userId : session('username', 'guest'));
     }
 
     protected function activityCompletionOverrideKey(int $courseId, int $moduleId): string
     {
         $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
 
-        return 'activity_completion_overrides.'.$userId.'.'.$courseId.'.'.$moduleId;
+        return 'activity_completion_overrides.' . $userId . '.' . $courseId . '.' . $moduleId;
     }
 
     protected function localActivityCompletionCacheKey(int $courseId): string
     {
         $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
 
-        return 'local_activity_completions:v1:'.$userId.':'.$courseId;
+        return 'local_activity_completions:v1:' . $userId . ':' . $courseId;
     }
 
     /**
@@ -2372,7 +2627,7 @@ class LoginController extends Controller
         }
 
         $cached = Cache::get($this->localActivityCompletionCacheKey($courseId), []);
-        $sessionOverrides = session('activity_completion_overrides.'.$userId.'.'.$courseId, []);
+        $sessionOverrides = session('activity_completion_overrides.' . $userId . '.' . $courseId, []);
 
         return array_replace(
             is_array($cached) ? $cached : [],
@@ -2445,7 +2700,7 @@ class LoginController extends Controller
             }
         }
 
-        $trackableTypes = ['resource', 'page', 'book', 'folder', 'url', 'label', 'assign', 'quiz'];
+        $trackableTypes = ['resource', 'page', 'book', 'folder', 'url', 'assign', 'quiz'];
         foreach ($contents as $section) {
             foreach (($section['modules'] ?? []) as $module) {
                 $moduleId = (int) ($module['id'] ?? 0);
@@ -2631,7 +2886,7 @@ class LoginController extends Controller
 
                 $items[] = [
                     'userid' => $userId,
-                    'student_name' => $user['fullname'] ?? $user['name'] ?? 'Mahasiswa #'.$userId,
+                    'student_name' => $user['fullname'] ?? $user['name'] ?? 'Mahasiswa #' . $userId,
                     'student_email' => $user['email'] ?? null,
                     'status' => $submission['status'] ?? '-',
                     'grading_status' => $gradeData['workflowstate'] ?? $submission['gradingstatus'] ?? $submission['workflowstate'] ?? null,
@@ -2645,7 +2900,7 @@ class LoginController extends Controller
             }
         }
 
-        usort($items, fn ($a, $b) => strcasecmp($a['student_name'], $b['student_name']));
+        usort($items, fn($a, $b) => strcasecmp($a['student_name'], $b['student_name']));
 
         return $items;
     }
@@ -3225,11 +3480,9 @@ class LoginController extends Controller
     protected function humanFileSize(int $bytes): string
     {
         if ($bytes >= 1024 * 1024) {
-            return number_format($bytes / 1024 / 1024, 0).' MB';
+            return number_format($bytes / 1024 / 1024, 0) . ' MB';
         }
 
-        return number_format(max(1, $bytes / 1024), 0).' KB';
+        return number_format(max(1, $bytes / 1024), 0) . ' KB';
     }
-
 }
-

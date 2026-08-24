@@ -37,6 +37,7 @@ class CourseDetailDiscussionTest extends TestCase
                 'percent' => 0,
                 'statuses' => [['cmid' => 10, 'state' => 0]],
             ],
+            'assignmentCompletionStatuses' => [],
         ]);
 
         $response
