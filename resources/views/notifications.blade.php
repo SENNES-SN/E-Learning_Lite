@@ -40,8 +40,8 @@
                 </section>
 
                 <nav class="notification-final-filters" aria-label="Filter notifikasi">
-                    <a class="{{ ($activeFilter ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('notifications') }}">Semua</a>
-                    <a class="{{ ($activeFilter ?? 'all') === 'deadline' ? 'active' : '' }}" href="{{ route('notifications', ['filter' => 'deadline']) }}">Batas Waktu</a>
+                    <a class="{{ ($activeFilter ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('notifications') }}" data-loading-button>Semua</a>
+                    <a class="{{ ($activeFilter ?? 'all') === 'deadline' ? 'active' : '' }}" href="{{ route('notifications', ['filter' => 'deadline']) }}" data-loading-button>Batas Waktu</a>
                 </nav>
 
                 @if ($notificationError)

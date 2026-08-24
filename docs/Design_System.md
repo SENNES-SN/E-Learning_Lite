@@ -369,13 +369,15 @@ Class yang direkomendasikan:
 
 ### 6.3 Detail Kursus
 
-- Header course berupa card putih elevated yang memuat inisial course, nama course, dan tombol kembali.
-- Di bawah header tampil label serta progress pembelajaran.
+- Header course berupa card putih elevated yang memuat inisial course, nama course, dan tombol kembali. Pada mobile, tinggi card dipadatkan sekitar `84px` dengan inisial `44px` dan judul berskala `18–21px`.
+- Di bawah header tampil label serta progress pembelajaran. Pada mobile, label progress memakai `16px` dan track dipadatkan menjadi sekitar `6px`.
 - Gunakan tab `TOPIK`, `NILAI`, dan `PENCAPAIAN`.
-- Ringkasan aktivitas menggunakan tiga card: Materi, Tugas, dan Quiz, masing-masing memuat jumlah selesai/total serta status.
+- Ringkasan aktivitas menggunakan tiga card: Materi, Tugas, dan Quiz, masing-masing memuat jumlah selesai/total serta status. Pada mobile, container ikon ringkasan berukuran sekitar `40–42px` dan ikon baris aktivitas sekitar `20px` agar aset tidak mendominasi card.
 - Topik mingguan menggunakan accordion. Header memuat rentang tanggal, jumlah aktivitas, dan chevron.
 - Aktivitas di dalam accordion memakai ikon soft blue di kiri, nama aktivitas, dan status di kanan.
+- Pada mobile, header accordion tetap satu baris: rentang topik di kiri serta jumlah aktivitas dan chevron di kanan. Chip rentang mengikuti lebar teks; rentang yang terlalu panjang memakai elipsis agar susunan tidak pecah. Baris aktivitas memakai ikon kecil di kiri serta nama dan status yang bertumpuk rapat di kanan.
 - Seluruh baris aktivitas harus dapat diklik dengan target minimum `44px`.
+- Saat aktivitas dibuka, pertahankan ikon dan nama aktivitas, ganti area status dengan spinner navy, beri permukaan soft blue, serta tandai baris sebagai sibuk sampai navigasi selesai. Hanya pilihan terakhir yang boleh memiliki state loading; jika aktivitas lain dipilih sebelum navigasi selesai, pulihkan state sebelumnya dan pindahkan indikator ke pilihan terbaru.
 
 Class yang direkomendasikan:
 
@@ -394,6 +396,7 @@ Class yang direkomendasikan:
 - Deskripsi materi menggunakan body text dengan lebar baca yang nyaman.
 - Aksi `Baca Materi` diletakkan di sisi kanan pada desktop.
 - Setelah materi selesai, status berubah menjadi `Sudah Diselesaikan` dan tampil modal keberhasilan.
+- Pada mobile, gunakan ikon header 40 px dan judul 18 px; status ringkas berada sejajar dengan judul saat ruang cukup lalu membungkus secara natural untuk judul panjang. Lampiran memiliki tinggi minimum 72 px dan tombol aksi selebar konten.
 
 Class yang direkomendasikan:
 
@@ -412,6 +415,7 @@ Class yang direkomendasikan:
 - Catatan opsional menggunakan textarea berukuran lebar.
 - Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan sebelum tombol kumpulkan.
 - Jika deadline terlewati, cegah pengumpulan dan tampilkan modal error waktu berakhir.
+- Pada mobile, padatkan header dan kartu waktu menjadi susunan dua kolom, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
 
 Class yang direkomendasikan:
 
@@ -424,15 +428,21 @@ Class yang direkomendasikan:
 
 ### 6.6 Pengerjaan Quiz
 
-- Desktop memakai layout dua kolom: area soal fleksibel dan panel daftar soal sekitar sepertiga lebar konten.
-- Ringkasan atas memuat waktu tersisa, nomor soal, dan skor maksimal dengan divider vertikal.
-- Pertanyaan berada dalam bordered card.
-- Setiap opsi jawaban berupa baris blue-50; opsi terpilih memakai navy dengan teks putih.
-- Radio tetap terlihat jelas di sisi kiri label.
+- Desktop memakai layout dua kolom dengan area soal fleksibel dan panel daftar soal sekitar `280–320px`; keseluruhan konten dibatasi sekitar `1360px` agar tidak terlalu melebar.
+- Ringkasan atas memuat waktu tersisa, nomor soal, dan skor maksimal dalam card putih ringkas dengan divider vertikal.
+- Pertanyaan berada dalam bordered card putih dengan radius `12px`, padding `24px`, dan shadow tipis.
+- Setiap opsi jawaban berupa satu baris blue-50 dengan radio, nomor opsi, dan isi jawaban sejajar; opsi terpilih memakai navy dengan teks putih.
+- Radio/checkbox asli tetap tersedia secara semantik untuk keyboard dan pembaca layar, tetapi disembunyikan secara visual; state pilihan ditunjukkan melalui perubahan warna seluruh baris opsi.
 - Navigasi sebelumnya/selanjutnya berada di bawah card dan berjajar pada dua sisi.
-- Panel daftar soal memakai blue-50, legend `Dijawab`/`Belum Dijawab`, grid nomor, dan tombol `Selesai` di bawah.
-- Nomor dijawab memakai navy; belum dijawab memakai putih.
+- Panel daftar soal memakai blue-50, bersifat sticky pada desktop, dan langsung memuat grid nomor sebagai navigasi serta tombol `Selesai` tanpa legenda status atau ruang kosong buatan.
+- Semua nomor soal memakai tampilan netral tanpa membedakan status dijawab dan belum dijawab; soal yang sedang dibuka tetap diberi outline sebagai konteks navigasi.
+- Status respons tetap disimpan selama sesi tab untuk validasi penyelesaian, tetapi tidak mengubah warna nomor. Saat nomor atau tombol navigasi pengerjaan kuis sedang memuat, gunakan spinner putih agar tetap kontras pada desktop maupun mobile.
 - Setelah selesai, tampilkan modal sukses yang memuat skor, poin diperoleh, dan tombol kembali ke detail kursus.
+- Pada mobile, detail awal quiz memakai header ringkas, kartu akses tersusun dua kolom, informasi quiz selebar konten, dan tombol mulai selebar konten. Halaman pengerjaan memakai satu kolom; ringkasan hanya menampilkan ikon jam dan waktu tersisa, perpindahan soal menggunakan tombol panah tanpa label, serta daftar nomor disembunyikan. Pada soal selain yang terakhir tampil panah sebelumnya dan berikutnya; pada soal terakhir panah berikutnya digantikan tombol `Selesai` dalam baris yang sama.
+- Saat pengerjaan dimulai, gunakan focus mode tanpa topbar agar ruang vertikal diprioritaskan untuk soal; seluruh baris opsi menjadi target interaksi dengan nomor opsi dan isi jawaban sejajar.
+- Pada mobile, tombol pembuka/penutup sidebar tidak dirender selama pengerjaan sehingga navigasi samping tidak dapat diakses sebelum kuis diselesaikan.
+- Label bawaan Moodle seperti `Teks soal`, `Soal [nomor] Jawaban`, dan penanda opsi `A.`/`B.`/`C.`/`D.` tidak ditampilkan; tampilkan langsung isi pertanyaan dan isi setiap jawaban.
+- Kontrol `Hapus pilihan saya` dari Moodle tidak ditampilkan. Saat halaman pertama kali dibuka tanpa respons valid, tidak boleh ada opsi jawaban yang terlihat terpilih.
 
 Class yang direkomendasikan:
 
@@ -472,6 +482,7 @@ Class yang direkomendasikan:
 - Leaderboard menggunakan list horizontal dengan nomor peringkat, avatar outline, nama, poin, dan ikon star.
 - Peringkat 1, 2, dan 3 memiliki warna medali berbeda; baris mahasiswa aktif diberi label `Anda`.
 - Leaderboard tidak menampilkan detail nilai mahasiswa lain.
+- Pada mobile, gunakan skala ringkas: judul header satu baris, ikon dan tombol kembali sekitar `40px`, ringkasan poin/peringkat bertumpuk dengan padding kecil, card badge vertikal yang lebih pendek, serta baris leaderboard dan tipografi yang diperkecil tanpa mengurangi keterbacaan.
 
 Class yang direkomendasikan:
 
@@ -491,6 +502,7 @@ Class yang direkomendasikan:
 - Isi modal dapat di-scroll secara vertikal.
 - Setiap badge berupa baris yang memuat aset badge, nama, syarat, status, dan tanggal jika sudah diperoleh.
 - Status diperoleh menggunakan success-soft dengan ikon check; status belum diperoleh menggunakan surface putih dan border abu-abu.
+- Pada mobile, modal memakai lebar ringkas dan tinggi sekitar setengah viewport agar tidak menutupi seluruh layar. Header tetap terlihat, sedangkan daftar badge dapat di-scroll secara vertikal. Setiap card mempertahankan tinggi sesuai kontennya dan tidak boleh diperkecil untuk memaksa seluruh badge masuk sekaligus. Card memakai dua kolom stabil: aset badge ringkas di kiri serta nama, syarat, dan status di kanan; status boleh membungkus dan tidak boleh keluar atau bertumpuk dengan card berikutnya.
 
 Class yang direkomendasikan:
 
@@ -499,12 +511,24 @@ Class yang direkomendasikan:
 - `.badge-list-item`
 - `.badge-earned-state`
 
+### 6.10 Profil Pengguna
+
+- Header memakai ikon profil, judul `Profil Pengguna`, deskripsi singkat pada desktop, dan tombol kembali.
+- Card profil memuat identitas mahasiswa serta informasi nama lengkap dan email yang berasal dari akun aktif.
+- Pada mobile, header memakai ikon dan tombol sekitar `40px` dengan judul satu baris. Avatar, nama, label peran, padding card, ikon detail, dan tipografi diperkecil secara proporsional; email panjang boleh membungkus tanpa menyebabkan overflow atau menyisakan pecahan karakter yang tidak wajar. Nama mahasiswa memakai ukuran normal selama masih satu baris; jika terdeteksi membungkus menjadi dua baris atau lebih, ukuran font diturunkan secara adaptif sampai kembali satu baris, dengan batas minimum agar tetap terbaca.
+
+### 6.11 Notifikasi
+
+- Halaman memuat header, ringkasan jumlah notifikasi dan batas waktu, filter `Semua`/`Batas Waktu`, serta daftar aktivitas terkait.
+- Pada mobile, seluruh ikon, tipografi, padding, tombol buka, ringkasan, dan card aktivitas memakai skala ringkas. Kedua filter membagi lebar secara sama rata dan teksnya berada di tengah.
+- Saat filter dipilih, tampilkan spinner pada tab yang ditekan. Spinner memakai navy pada tab terang dan putih pada tab aktif navy agar kontras.
+
 ## 7. Modal dan Feedback States
 
 ### 7.1 Modal Foundation
 
-- Backdrop memakai putih transparan dengan `backdrop-filter: blur(3px)` sampai `blur(5px)`.
-- Modal dipusatkan pada area konten aktif.
+- Backdrop seluruh ukuran layar memakai lapisan navy transparan dengan blur sekitar `7px` agar modal tetap terpisah jelas dari konten.
+- Backdrop wajib memakai `position: fixed`, `inset: 0`, lebar `100vw`, tinggi `100dvh`, dan z-index di atas topbar serta sidebar. Modal dipusatkan terhadap viewport penuh, bukan hanya area konten aktif.
 - Modal kecil memiliki lebar sekitar `410–470px`; modal daftar badge sekitar `800–830px`.
 - Surface putih, radius `16px`, dan shadow modal.
 - Tombol tutup berada di kanan atas dengan target klik minimal `44px`, meskipun ikon visual lebih kecil.
@@ -559,14 +583,15 @@ Desain final yang tersedia berfokus pada desktop. Aturan berikut adalah adaptasi
 
 ### Mobile — di bawah `768px`
 
-- Sidebar menjadi drawer overlay dan tidak mengambil lebar permanen.
-- Topbar tetap menyediakan tombol menu, notifikasi, dan profil.
-- Login berubah menjadi satu kolom; panel brand dipadatkan di atas form.
+- Sidebar menjadi drawer overlay dan tidak mengambil lebar permanen. Pada ponsel sempit drawer memakai lebar penuh, sedangkan mobile yang lebih lebar memakai backdrop; tombol tutup tidak boleh menutupi brand dan item navigasi mempertahankan target sentuh minimal `44px`.
+- Topbar tetap menyediakan tombol menu, notifikasi, dan profil serta bersifat sticky agar seluruh aksi tetap tampil sebagai satu kesatuan saat halaman digulir. Pada dashboard mobile, topbar transparan di atas hero saat posisi awal dan permukaan putih beserta shadow baru tampil setelah hero `Selamat Datang` terlewati. Pada detail kursus, permukaan putih topbar baru tampil setelah seluruh card ringkasan aktivitas terlewati.
+- Login berubah menjadi satu kolom; panel brand dipadatkan di atas form dan seluruh latar halaman memakai blue-50, sementara login card tetap putih. Pada layar ponsel sempit, ukuran logo, tipografi, padding, dan jarak form dipadatkan agar card terlihat dalam satu viewport tanpa mengurangi target sentuh minimum `44px`.
 - Grid course, badge, dan ringkasan berubah menjadi satu kolom.
-- Hero boleh menyembunyikan atau mengecilkan ilustrasi, tetapi teks sambutan tetap tampil.
+- Hero boleh menyembunyikan atau mengecilkan ilustrasi, tetapi teks sambutan tetap tampil. Ilustrasi dan ikon halaman memakai skala mobile agar tidak mendominasi konten. Tipografi label, judul, dan deskripsi hero memakai skala mobile serta tinggi card fleksibel agar nama mahasiswa yang panjang tidak membuat konten sesak. Pada mobile, nama yang panjang ditempatkan di baris baru setelah `Selamat Datang` tanpa tanda baca dan memakai ukuran sedikit lebih kecil.
 - Header halaman membungkus; status dan tombol kembali berpindah ke baris berikutnya.
 - Navigasi kuis dan tombol aksi menjadi full-width jika diperlukan.
-- Modal memakai lebar `calc(100% - 32px)` dan tinggi maksimum `calc(100dvh - 32px)`.
+- Backdrop modal wajib memakai `position: fixed`, `inset: 0`, dan tinggi `100dvh` agar blur menutup seluruh viewport termasuk area yang sebelumnya ditempati topbar.
+- Modal memakai lebar efektif maksimum sekitar `360px`, tinggi maksimum `calc(100dvh - 28px)`, padding sekitar `18–28px`, radius `12px`, dan overflow internal bila kontennya panjang. Ikon alert sekitar `88–96px`, aset badge utama sekitar `120px`, judul sekitar `19–22px`, body text sekitar `14px`, dan tombol tutup mempertahankan target sentuh `44px`.
 - Tabel nilai memakai horizontal scroll dan tidak memaksa kolom menjadi terlalu sempit.
 - Dropzone dan attachment panel mempertahankan target sentuh minimal `44px`.
 

@@ -25,7 +25,10 @@
                 <section class="final-dashboard-hero">
                     <div class="final-dashboard-hero-copy">
                         <span class="final-dashboard-label">Dashboard E-Learning Lite</span>
-                        <h1>Selamat datang, {{ $displayName }}!</h1>
+                        <h1 @class(['has-long-name' => Str::length($displayName) > 14])>
+                            <span class="dashboard-greeting">Selamat Datang</span>
+                            <span class="dashboard-user-name">{{ $displayName }}</span>
+                        </h1>
                         <p>Pantau perkembangan pembelajaranmu dan aktivitas yang perlu diselesaikan.</p>
                     </div>
                     <div class="final-dashboard-illustration" role="img" aria-label="Ilustrasi mahasiswa sedang belajar"></div>

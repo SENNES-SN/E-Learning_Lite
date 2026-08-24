@@ -56,10 +56,12 @@
                 <div class="student-page-content final-quiz-content">
                     <header class="final-quiz-header">
                         <span class="final-quiz-title-icon" aria-hidden="true"><span class="asset-icon asset-icon-quiz"></span></span>
-                        <h1>{{ $quizName }}</h1>
-                        <span class="final-quiz-status {{ $quizIsCompleted ? 'is-completed' : 'is-pending' }}">
-                            {{ $quizIsCompleted ? 'Sudah Dikerjakan' : 'Belum Dikerjakan' }}
-                        </span>
+                        <div class="final-activity-heading">
+                            <h1>{{ $quizName }}</h1>
+                            <span class="final-quiz-status {{ $quizIsCompleted ? 'is-completed' : 'is-pending' }}">
+                                {{ $quizIsCompleted ? 'Sudah Dikerjakan' : 'Belum Dikerjakan' }}
+                            </span>
+                        </div>
                         <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark"><i data-lucide="undo-2"></i></a>
                     </header>
 

@@ -18,6 +18,20 @@
         $totalQuestions = max($summaryQuestions->count(), $questions->count());
         $currentQuestion = $questions->first() ?? [];
         $currentNumber = $currentQuestion['number'] ?? $currentQuestion['slot'] ?? ($currentPage + 1);
+        $currentSummaryIndex = $summaryQuestions->search(function (array $question) use ($currentPage, $currentNumber): bool {
+            if (isset($question['page'])) {
+                return (int) $question['page'] === $currentPage;
+            }
+
+            return (string) ($question['number'] ?? $question['slot'] ?? '') === (string) $currentNumber;
+        });
+        $currentSummaryIndex = $currentSummaryIndex === false ? max(0, min($currentPage, $summaryQuestions->count() - 1)) : (int) $currentSummaryIndex;
+        $isFirstQuestion = $currentSummaryIndex <= 0;
+        $isLastQuestion = $currentSummaryIndex >= max(0, $summaryQuestions->count() - 1);
+        $previousQuestion = $summaryQuestions->get(max(0, $currentSummaryIndex - 1), []);
+        $nextQuestion = $summaryQuestions->get(min(max(0, $summaryQuestions->count() - 1), $currentSummaryIndex + 1), []);
+        $previousQuestionPage = isset($previousQuestion['page']) ? (int) $previousQuestion['page'] : max(0, $currentPage - 1);
+        $nextQuestionPage = isset($nextQuestion['page']) ? (int) $nextQuestion['page'] : ($currentPage + 1);
         $maxScore = (float) ($quiz['grade'] ?? 100);
         $deadlineTimestamp = (int) ($attemptDeadline ?? 0);
         $remainingSeconds = $deadlineTimestamp > 0 ? max(0, $deadlineTimestamp - now()->timestamp) : null;
@@ -25,24 +39,12 @@
         $formatTimestamp = fn (int $timestamp) => $timestamp > 0
             ? \Carbon\Carbon::createFromTimestamp($timestamp)->timezone($timezone)->format('d / m / Y H:i')
             : 'Tidak dibatasi';
-        $questionIsAnswered = function (array $question): bool {
-            $state = strtolower((string) ($question['state'] ?? ''));
-            $status = strtolower(strip_tags((string) ($question['status'] ?? '')));
-
-            return in_array($state, ['complete', 'gradedright', 'gradedwrong', 'gradedpartial'], true)
-                || str_contains($status, 'saved')
-                || str_contains($status, 'tersimpan')
-                || str_contains($status, 'answered')
-                || str_contains($status, 'dijawab');
-        };
     @endphp
 
     <div class="student-shell">
-        @include('partials.sidebar', ['activeNav' => 'moodle'])
+        @include('partials.sidebar', ['activeNav' => 'moodle', 'hideMobileToggle' => true])
 
         <main class="student-main">
-            @include('partials.student_topbar')
-
             <div class="student-page-content final-quiz-attempt-content">
                 @if ($errors->any() && empty($accessExpired))
                     <div class="quiz-page-feedback is-error" role="alert">{{ $errors->first() }}</div>
@@ -72,26 +74,24 @@
                                     @endforeach
                                 </section>
 
-                                <div class="quiz-page-actions">
-                                    <button class="quiz-secondary-button" type="button" data-quiz-navigate="{{ max(0, $currentPage - 1) }}" data-loading-button data-loading-tone="dark" {{ $currentPage <= 0 ? 'disabled' : '' }}><i data-lucide="arrow-left"></i> Sebelumnya</button>
-                                    <button class="quiz-primary-button" type="button" data-quiz-navigate="{{ $currentPage + 1 }}" data-loading-button {{ $currentPage + 1 >= max(1, $totalQuestions) ? 'disabled' : '' }}>Selanjutnya <i data-lucide="arrow-right"></i></button>
+                                <div class="quiz-page-actions {{ $isLastQuestion ? 'is-last-question' : '' }}">
+                                    <button class="quiz-secondary-button" type="button" data-quiz-navigate="{{ $previousQuestionPage }}" data-loading-button aria-label="Buka soal sebelumnya" {{ $isFirstQuestion ? 'disabled' : '' }}><i data-lucide="arrow-left"></i><span>Sebelumnya</span></button>
+                                    <button class="quiz-primary-button quiz-next-button" type="button" data-quiz-navigate="{{ $nextQuestionPage }}" data-loading-button aria-label="Buka soal berikutnya" {{ $isLastQuestion ? 'disabled' : '' }}><span>Selanjutnya</span><i data-lucide="arrow-right"></i></button>
+                                    @if ($isLastQuestion)
+                                        <button class="quiz-finish-button quiz-mobile-finish" type="button" data-quiz-finish data-loading-button>Selesai</button>
+                                    @endif
                                 </div>
                             </div>
 
                             <aside class="quiz-question-navigation" aria-label="Daftar soal">
                                 <h2>Daftar Soal</h2>
-                                <div class="quiz-navigation-legend">
-                                    <span><i class="is-answered"></i>Dijawab</span>
-                                    <span><i></i>Belum Dijawab</span>
-                                </div>
                                 <div class="quiz-question-grid">
                                     @foreach ($summaryQuestions as $question)
                                         @php
                                             $questionNumber = $question['number'] ?? $question['slot'] ?? $loop->iteration;
                                             $questionPage = isset($question['page']) ? (int) $question['page'] : ($loop->iteration - 1);
-                                            $answered = $questionIsAnswered($question);
                                         @endphp
-                                        <button type="button" class="{{ $answered ? 'is-answered' : '' }} {{ $questionPage === $currentPage ? 'is-current' : '' }}" data-question-nav data-question-page="{{ $questionPage }}" data-question-answered="{{ $answered ? '1' : '0' }}" data-loading-button @if (! $answered) data-loading-tone="dark" @endif>{{ $questionNumber }}</button>
+                                        <button type="button" class="{{ $questionPage === $currentPage ? 'is-current' : '' }}" data-question-nav data-question-page="{{ $questionPage }}" data-question-answered="0" data-loading-button>{{ $questionNumber }}</button>
                                     @endforeach
                                 </div>
                                 <button class="quiz-finish-button" type="button" data-quiz-finish data-loading-button>Selesai</button>
@@ -142,13 +142,78 @@
             const expiredLayer = document.querySelector('[data-attempt-expired-layer]');
             const timer = document.querySelector('[data-quiz-timer]');
             let remainingSeconds = @json($remainingSeconds);
+            const answerStorageKey = `e-learning-lite:quiz-attempt:${@json($attemptId)}:answered-pages`;
+
+            const readAnsweredPages = () => {
+                try {
+                    const storedPages = JSON.parse(window.sessionStorage.getItem(answerStorageKey) || '[]');
+                    return new Set(Array.isArray(storedPages) ? storedPages.map(Number) : []);
+                } catch (_) {
+                    return new Set();
+                }
+            };
+
+            const answeredPages = readAnsweredPages();
+
+            const persistAnsweredPages = () => {
+                try {
+                    window.sessionStorage.setItem(answerStorageKey, JSON.stringify(Array.from(answeredPages)));
+                } catch (_) {
+                    // The visual state remains functional when storage is unavailable.
+                }
+            };
+
+            const renderQuestionState = (button, answered) => {
+                button.dataset.questionAnswered = answered ? '1' : '0';
+            };
+
+            navButtons.forEach((button) => {
+                renderQuestionState(button, answeredPages.has(Number(button.dataset.questionPage || 0)));
+            });
+
+            const removeMoodleTextLabel = (root, label) => {
+                if (!root) return;
+
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+                const matchingNodes = [];
+                while (walker.nextNode()) {
+                    if (walker.currentNode.nodeValue.trim().toLocaleLowerCase('id') === label.toLocaleLowerCase('id')) {
+                        matchingNodes.push(walker.currentNode);
+                    }
+                }
+
+                matchingNodes.forEach((node) => {
+                    const parent = node.parentElement;
+                    node.remove();
+                    if (parent && parent !== root && parent.textContent.trim() === '' && parent.children.length === 0) {
+                        parent.remove();
+                    }
+                });
+            };
+
+            removeMoodleTextLabel(currentQuestion, 'Teks soal');
 
             const currentPageAnswered = () => {
                 if (!currentQuestion) return false;
-                if (currentQuestion.querySelector('input[type="radio"]:checked, input[type="checkbox"]:checked')) return true;
+                if (Array.from(currentQuestion.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked')).some((field) => field.value !== '-1' && !field.closest('.qtype_multichoice_clearchoice'))) return true;
                 if (Array.from(currentQuestion.querySelectorAll('textarea')).some((field) => field.value.trim() !== '')) return true;
-                if (Array.from(currentQuestion.querySelectorAll('select')).some((field) => field.value !== '')) return true;
+                if (Array.from(currentQuestion.querySelectorAll('select')).some((field) => field.value !== '' && field.value !== '-1')) return true;
                 return Array.from(currentQuestion.querySelectorAll('input[type="text"], input[type="number"]')).some((field) => field.value.trim() !== '');
+            };
+
+            const syncCurrentQuestionState = () => {
+                const activePage = Number(pageInput?.value || 0);
+                const currentNavButton = navButtons.find((button) => Number(button.dataset.questionPage || 0) === activePage);
+                if (!currentNavButton) return;
+
+                const answered = currentPageAnswered();
+                if (answered) {
+                    answeredPages.add(activePage);
+                } else {
+                    answeredPages.delete(activePage);
+                }
+                renderQuestionState(currentNavButton, answered);
+                persistAnsweredPages();
             };
 
             const buildPayload = () => {
@@ -170,22 +235,32 @@
 
             document.querySelectorAll('[data-quiz-navigate]').forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.quizNavigate || 0), false, button)));
             navButtons.forEach((button) => button.addEventListener('click', () => submitToPage(Number(button.dataset.questionPage || 0), false, button)));
+            currentQuestion?.addEventListener('change', syncCurrentQuestionState);
+            currentQuestion?.addEventListener('input', syncCurrentQuestionState);
+            currentQuestion?.addEventListener('click', (event) => {
+                const optionRow = event.target.closest('.answer > div');
+                if (!optionRow || optionRow.classList.contains('qtype_multichoice_clearchoice')) return;
+                if (event.target.closest('input, label, a, button')) return;
 
-            document.querySelector('[data-quiz-finish]')?.addEventListener('click', (event) => {
-                const currentPage = Number(pageInput.value || 0);
-                const unanswered = navButtons.filter((button) => {
-                    const buttonPage = Number(button.dataset.questionPage || 0);
-                    if (buttonPage === currentPage && currentPageAnswered()) return false;
-                    return button.dataset.questionAnswered !== '1';
-                });
-                if (unanswered.length > 0) {
-                    warningLayer.hidden = false;
-                    document.body.classList.add('material-modal-open');
-                    warningLayer.querySelector('button')?.focus();
-                    return;
-                }
-                submitToPage(currentPage, true, event.currentTarget);
+                optionRow.querySelector('input[type="radio"], input[type="checkbox"]')?.click();
             });
+            syncCurrentQuestionState();
+
+            document.querySelectorAll('[data-quiz-finish]').forEach((button) => button.addEventListener('click', (event) => {
+                    const currentPage = Number(pageInput.value || 0);
+                    const unanswered = navButtons.filter((navButton) => {
+                        const buttonPage = Number(navButton.dataset.questionPage || 0);
+                        if (buttonPage === currentPage && currentPageAnswered()) return false;
+                        return navButton.dataset.questionAnswered !== '1';
+                    });
+                    if (unanswered.length > 0) {
+                        warningLayer.hidden = false;
+                        document.body.classList.add('material-modal-open');
+                        warningLayer.querySelector('button')?.focus();
+                        return;
+                    }
+                    submitToPage(currentPage, true, event.currentTarget);
+                }));
 
             document.querySelector('[data-unanswered-close]')?.addEventListener('click', () => {
                 warningLayer.hidden = true;

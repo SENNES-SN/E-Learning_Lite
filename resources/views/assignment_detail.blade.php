@@ -63,12 +63,17 @@
                     <span class="final-assignment-title-icon" aria-hidden="true">
                         <span class="asset-icon asset-icon-task"></span>
                     </span>
-                    <h1>{{ $taskName }}</h1>
+                    <div class="final-activity-heading">
+                        <h1>{{ $taskName }}</h1>
+
+                        @if ($pageMode === 'detail')
+                            <span class="final-assignment-status {{ $isSubmitted ? 'is-completed' : 'is-pending' }}">
+                                {{ $isSubmitted ? 'Sudah Dikumpulkan' : 'Belum Dikumpulkan' }}
+                            </span>
+                        @endif
+                    </div>
 
                     @if ($pageMode === 'detail')
-                        <span class="final-assignment-status {{ $isSubmitted ? 'is-completed' : 'is-pending' }}">
-                            {{ $isSubmitted ? 'Sudah Dikumpulkan' : 'Belum Dikumpulkan' }}
-                        </span>
                         <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                             <i data-lucide="undo-2" aria-hidden="true"></i>
                         </a>

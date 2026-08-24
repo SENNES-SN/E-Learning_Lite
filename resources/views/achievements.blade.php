@@ -98,7 +98,7 @@
         </main>
     </div>
 
-    <div class="achievement-modal-layer" data-all-badges-layer hidden>
+    <div class="achievement-modal-layer all-badges-layer" data-all-badges-layer hidden>
         <section class="all-badges-modal" role="dialog" aria-modal="true" aria-labelledby="all-badges-title">
             <header>
                 <h2 id="all-badges-title">Semua Badge</h2>

@@ -168,7 +168,7 @@
                             default => $completed ? 'Sudah Diselesaikan' : 'Belum Diselesaikan',
                             };
                             @endphp
-                            <a class="final-activity-row" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => (int) ($module['id'] ?? 0)]) }}">
+                            <a class="final-activity-row" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => (int) ($module['id'] ?? 0)]) }}" data-loading-button data-loading-mode="row" data-loading-tone="dark">
                                 <span class="final-row-icon" aria-hidden="true">
                                     @if ($isDiscussion)
                                     <i data-lucide="messages-square"></i>

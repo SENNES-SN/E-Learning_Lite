@@ -54,10 +54,12 @@
                     <span class="final-material-title-icon" aria-hidden="true">
                         <span class="asset-icon asset-icon-material"></span>
                     </span>
-                    <h1>{{ $materialName }}</h1>
-                    <span class="final-material-status {{ $materialIsCompleted ? 'is-completed' : 'is-pending' }}">
-                        {{ $materialIsCompleted ? 'Sudah Diselesaikan' : 'Belum Diselesaikan' }}
-                    </span>
+                    <div class="final-activity-heading">
+                        <h1>{{ $materialName }}</h1>
+                        <span class="final-material-status {{ $materialIsCompleted ? 'is-completed' : 'is-pending' }}">
+                            {{ $materialIsCompleted ? 'Sudah Diselesaikan' : 'Belum Diselesaikan' }}
+                        </span>
+                    </div>
                     <a class="final-back-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" aria-label="Kembali ke detail mata kuliah" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
                     </a>
@@ -154,7 +156,7 @@
                     @if ($materialIsCompleted)
                         <button class="material-reader-button is-primary" type="button" data-reader-close>Selesai</button>
                     @else
-                        <button class="material-reader-button is-primary" type="submit" form="material-complete-form" data-loading-button data-loading-tone="dark">Selesai</button>
+                        <button class="material-reader-button is-primary" type="submit" form="material-complete-form" data-loading-button>Selesai</button>
                     @endif
                 </div>
             </footer>

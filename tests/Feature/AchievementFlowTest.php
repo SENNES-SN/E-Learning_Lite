@@ -51,6 +51,7 @@ class AchievementFlowTest extends TestCase
             ->assertSee('Third Place')
             ->assertSee(\Carbon\Carbon::createFromTimestamp(1778547720)->locale('id')->translatedFormat('d F Y'))
             ->assertSee('Semua Badge')
+            ->assertSee('all-badges-layer', false)
             ->assertSee('Mahasiswa 2')
             ->assertSee('Anda')
             ->assertDontSee('Buka di Moodle');

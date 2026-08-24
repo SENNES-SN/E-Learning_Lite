@@ -43,7 +43,7 @@
                         <span class="profile-final-avatar" aria-hidden="true">{{ $initials ?: 'M' }}</span>
                         <div>
                             <p>Mahasiswa</p>
-                            <h2 id="profile-name">{{ $displayName }}</h2>
+                            <h2 id="profile-name" data-profile-fit-name>{{ $displayName }}</h2>
                         </div>
                     </div>
 
@@ -61,5 +61,42 @@
             </div>
         </main>
     </div>
+
+    <script>
+        (() => {
+            const profileName = document.querySelector('[data-profile-fit-name]');
+            if (!profileName) return;
+
+            const fitProfileName = () => {
+                profileName.classList.remove('is-single-line');
+                profileName.style.removeProperty('font-size');
+
+                if (!window.matchMedia('(max-width: 760px)').matches) return;
+
+                const computedStyle = window.getComputedStyle(profileName);
+                const lineHeight = Number.parseFloat(computedStyle.lineHeight);
+                const hasMultipleLines = profileName.getBoundingClientRect().height > lineHeight * 1.4;
+                if (!hasMultipleLines) return;
+
+                profileName.classList.add('is-single-line');
+                let fontSize = Number.parseFloat(computedStyle.fontSize);
+                const minimumFontSize = 11;
+
+                while (profileName.scrollWidth > profileName.clientWidth && fontSize > minimumFontSize) {
+                    fontSize = Math.max(minimumFontSize, fontSize - 0.5);
+                    profileName.style.setProperty('font-size', `${fontSize}px`, 'important');
+                }
+            };
+
+            let resizeFrame;
+            window.addEventListener('resize', () => {
+                window.cancelAnimationFrame(resizeFrame);
+                resizeFrame = window.requestAnimationFrame(fitProfileName);
+            }, { passive: true });
+
+            fitProfileName();
+            document.fonts?.ready.then(fitProfileName);
+        })();
+    </script>
 </body>
 </html>

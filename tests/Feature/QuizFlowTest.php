@@ -85,7 +85,12 @@ class QuizFlowTest extends TestCase
             ->assertSee('Waktu Tersisa')
             ->assertSee('Pertanyaan kuis pertama')
             ->assertSee('Daftar Soal')
+            ->assertDontSee('data-question-answered="1"', false)
+            ->assertDontSee('quiz-navigation-legend', false)
+            ->assertDontSee('quiz-page-actions is-last-question', false)
             ->assertSee('Selesai');
+
+        $this->assertSame(1, substr_count($response->getContent(), '>Selesai</button>'));
     }
 
     public function test_finishing_quiz_updates_progress_and_awards_points_and_badge(): void
@@ -196,7 +201,7 @@ class QuizFlowTest extends TestCase
     {
         return [
             'questions' => [
-                ['slot' => 1, 'number' => 1, 'page' => 0, 'state' => 'todo'],
+                ['slot' => 1, 'number' => 1, 'page' => 0, 'state' => 'complete', 'status' => 'Answer saved'],
                 ['slot' => 2, 'number' => 2, 'page' => 1, 'state' => 'todo'],
             ],
         ];

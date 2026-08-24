@@ -20,7 +20,7 @@
 <aside class="app-sidebar" aria-label="Navigasi utama">
     <a class="app-brand" href="{{ route('dashboard') }}" aria-label="E-Learning Lite - Dashboard">
         <span class="app-brand-mark" aria-hidden="true"><i data-lucide="graduation-cap"></i></span>
-        <span>E - Learning Lite</span>
+        <span>E-Learning Lite</span>
     </a>
 
     <nav class="app-nav-list">
@@ -45,12 +45,15 @@
     </form>
 </aside>
 
-<button type="button" class="app-sidebar-toggle app-sidebar-close" data-sidebar-toggle="close" aria-label="Tutup navigasi">
-    <i data-lucide="x"></i>
-</button>
-<button type="button" class="app-sidebar-toggle app-sidebar-open" data-sidebar-toggle="open" aria-label="Buka navigasi">
-    <i data-lucide="menu"></i>
-</button>
+@unless($hideMobileToggle ?? false)
+    <button type="button" class="app-sidebar-backdrop" data-sidebar-toggle="close" aria-label="Tutup navigasi"></button>
+    <button type="button" class="app-sidebar-toggle app-sidebar-close" data-sidebar-toggle="close" aria-label="Tutup navigasi">
+        <i data-lucide="x"></i>
+    </button>
+    <button type="button" class="app-sidebar-toggle app-sidebar-open" data-sidebar-toggle="open" aria-label="Buka navigasi">
+        <i data-lucide="menu"></i>
+    </button>
+@endunless
 
 <script>
     (function () {

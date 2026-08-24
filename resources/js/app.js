@@ -47,15 +47,69 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 4000);
     }
 
+    const studentTopbar = document.querySelector(".student-topbar");
+    const dashboardHero = document.querySelector(".final-dashboard-hero");
+    const courseSummary = document.querySelector(
+        ".course-detail-final-page .final-activity-summary",
+    );
+    const topbarThreshold = dashboardHero
+        ? {
+            element: dashboardHero,
+            className: "is-past-dashboard-hero",
+        }
+        : courseSummary
+            ? {
+                element: courseSummary,
+                className: "is-past-course-summary",
+            }
+            : null;
+
+    if (topbarThreshold && studentTopbar) {
+        let topbarUpdateQueued = false;
+
+        const updateContextualTopbar = () => {
+            const thresholdHasPassed = topbarThreshold.element
+                .getBoundingClientRect().bottom
+                <= studentTopbar.offsetHeight;
+
+            studentTopbar.classList.toggle(
+                topbarThreshold.className,
+                thresholdHasPassed,
+            );
+            topbarUpdateQueued = false;
+        };
+
+        const queueContextualTopbarUpdate = () => {
+            if (topbarUpdateQueued) return;
+
+            topbarUpdateQueued = true;
+            window.requestAnimationFrame(updateContextualTopbar);
+        };
+
+        queueContextualTopbarUpdate();
+        window.addEventListener("scroll", queueContextualTopbarUpdate, {
+            passive: true,
+        });
+        window.addEventListener("resize", queueContextualTopbarUpdate);
+    }
+
     const setButtonLoading = (control) => {
         if (!control || control.dataset.loadingActive === "true") return;
+
+        if (control.dataset.loadingMode === "row") {
+            document
+                .querySelectorAll('[data-loading-mode="row"][data-loading-active="true"]')
+                .forEach((activeRow) => {
+                    if (activeRow !== control) resetButtonLoading(activeRow);
+                });
+        }
 
         const label = control.getAttribute("aria-label") || control.textContent.trim();
         const content = Array.from(control.children).find((child) =>
             child.classList.contains("loading-button-content"),
         );
 
-        if (!content) {
+        if (!content && control.dataset.loadingMode !== "row") {
             const contentWrapper = document.createElement("span");
             contentWrapper.className = "loading-button-content";
             while (control.firstChild) {
