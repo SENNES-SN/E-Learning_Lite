@@ -1519,12 +1519,16 @@ class LoginController extends Controller
             }
 
             $submittedAt = null;
-            foreach (['gradedatesubmitted', 'datesubmitted', 'timesubmitted', 'submissiontime', 'timecreated', 'timemodified'] as $dateField) {
+            foreach (['gradedatesubmitted', 'datesubmitted', 'timesubmitted', 'submissiontime', 'timefinish'] as $dateField) {
                 $candidate = (int) ($item[$dateField] ?? 0);
                 if ($candidate > 0) {
                     $submittedAt = $candidate;
                     break;
                 }
+            }
+
+            if ($gradeText === null && $submittedAt === null) {
+                continue;
             }
 
             $rows[$group][] = [

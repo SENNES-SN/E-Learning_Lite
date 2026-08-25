@@ -23,12 +23,12 @@
         $gradeGroups = [
             'tasks' => [
                 'label' => 'Tugas',
-                'empty' => 'Belum ada nilai tugas yang dapat ditampilkan.',
+                'empty' => 'Belum ada tugas yang sudah dikumpulkan.',
                 'rows' => collect($gradeRows['tasks'] ?? [])->filter(fn ($row) => is_array($row))->values(),
             ],
             'quizzes' => [
                 'label' => 'Quiz',
-                'empty' => 'Belum ada nilai quiz yang dapat ditampilkan.',
+                'empty' => 'Belum ada quiz yang sudah dikerjakan.',
                 'rows' => collect($gradeRows['quizzes'] ?? [])->filter(fn ($row) => is_array($row))->values(),
             ],
         ];
@@ -122,7 +122,7 @@
                                                 </td>
                                                 <td>
                                                     <span class="grade-status-pill {{ ($row['graded'] ?? false) ? 'is-graded' : '' }}">
-                                                        {{ ($row['graded'] ?? false) ? 'Dinilai' : 'Belum Dinilai' }}
+                                                        {{ ($row['graded'] ?? false) ? 'Sudah Dinilai' : 'Belum Dinilai' }}
                                                     </span>
                                                 </td>
                                             </tr>

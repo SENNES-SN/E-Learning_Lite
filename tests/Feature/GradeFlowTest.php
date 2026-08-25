@@ -42,7 +42,7 @@ class GradeFlowTest extends TestCase
                         'id' => 2,
                         'itemtype' => 'mod',
                         'itemmodule' => 'assign',
-                        'itemname' => 'Tugas 2',
+                        'itemname' => 'Tugas Belum Dikumpulkan',
                         'graderaw' => null,
                         'grademax' => 100,
                     ],
@@ -57,6 +57,32 @@ class GradeFlowTest extends TestCase
                     ],
                     [
                         'id' => 4,
+                        'itemtype' => 'mod',
+                        'itemmodule' => 'assign',
+                        'itemname' => 'Tugas Menunggu Penilaian',
+                        'graderaw' => null,
+                        'grademax' => 100,
+                        'gradedatesubmitted' => $assignmentDate + 3600,
+                    ],
+                    [
+                        'id' => 5,
+                        'itemtype' => 'mod',
+                        'itemmodule' => 'quiz',
+                        'itemname' => 'Quiz Menunggu Penilaian',
+                        'graderaw' => null,
+                        'grademax' => 100,
+                        'gradedatesubmitted' => $quizDate + 3600,
+                    ],
+                    [
+                        'id' => 6,
+                        'itemtype' => 'mod',
+                        'itemmodule' => 'quiz',
+                        'itemname' => 'Quiz Belum Dikerjakan',
+                        'graderaw' => null,
+                        'grademax' => 100,
+                    ],
+                    [
+                        'id' => 7,
                         'itemtype' => 'course',
                         'itemname' => 'Total mata kuliah',
                         'graderaw' => 85,
@@ -78,13 +104,16 @@ class GradeFlowTest extends TestCase
             ->assertSee('Pengantar UI/UX Design')
             ->assertSee('Detail Nilai')
             ->assertSee('Tugas 1')
-            ->assertSee('Tugas 2')
+            ->assertSee('Tugas Menunggu Penilaian')
             ->assertSee('Quiz 1')
+            ->assertSee('Quiz Menunggu Penilaian')
             ->assertSee('01/01/2026')
             ->assertSee('01/02/2026')
-            ->assertSee('Dinilai')
+            ->assertSee('Sudah Dinilai')
             ->assertSee('Belum Dinilai')
             ->assertSee('data-grade-tab="quizzes"', false)
+            ->assertDontSee('Tugas Belum Dikumpulkan')
+            ->assertDontSee('Quiz Belum Dikerjakan')
             ->assertDontSee('Total mata kuliah');
     }
 
