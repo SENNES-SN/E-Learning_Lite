@@ -395,6 +395,7 @@ Class yang direkomendasikan:
 - Bagian lampiran memakai panel blue-50 dengan ikon file danger-soft, nama file, ukuran, dan tombol download.
 - Deskripsi materi menggunakan body text dengan lebar baca yang nyaman.
 - Aksi `Baca Materi` diletakkan di sisi kanan pada desktop.
+- Pada modal pembaca materi, tombol `Kembali` menggunakan secondary soft blue, sedangkan tombol `Selesai` tetap menggunakan primary navy.
 - Setelah materi selesai, status berubah menjadi `Sudah Diselesaikan` dan tampil modal keberhasilan.
 - Pada mobile, gunakan ikon header 40 px dan judul 18 px; status ringkas berada sejajar dengan judul saat ruang cukup lalu membungkus secara natural untuk judul panjang. Lampiran memiliki tinggi minimum 72 px dan tombol aksi selebar konten.
 
@@ -501,7 +502,7 @@ Class yang direkomendasikan:
 - Header memuat judul `Semua Badge` dan tombol tutup.
 - Isi modal dapat di-scroll secara vertikal.
 - Setiap badge berupa baris yang memuat aset badge, nama, syarat, status, dan tanggal jika sudah diperoleh.
-- Status diperoleh menggunakan success-soft dengan ikon check; status belum diperoleh menggunakan surface putih dan border abu-abu.
+- Status diperoleh menggunakan success-soft dengan ikon check; status belum diperoleh menggunakan surface blue-50, border blue-100, dan teks navy.
 - Pada mobile, modal memakai lebar ringkas dan tinggi sekitar setengah viewport agar tidak menutupi seluruh layar. Header tetap terlihat, sedangkan daftar badge dapat di-scroll secara vertikal. Setiap card mempertahankan tinggi sesuai kontennya dan tidak boleh diperkecil untuk memaksa seluruh badge masuk sekaligus. Card memakai dua kolom stabil: aset badge ringkas di kiri serta nama, syarat, dan status di kanan; status boleh membungkus dan tidak boleh keluar atau bertumpuk dengan card berikutnya.
 
 Class yang direkomendasikan:

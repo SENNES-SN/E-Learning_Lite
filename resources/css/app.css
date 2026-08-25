@@ -451,15 +451,29 @@ img.material-reader-preview {
     cursor: pointer;
 }
 
-.material-reader-button.is-secondary,
-.material-reader-button.is-primary {
-    background: #eef4ff;
-    color: #0a0a0a;
+.material-reader-actions > button.material-reader-button.is-secondary[data-reader-close] {
+    background-color: #eef4ff !important;
+    border-color: #d8e7ff !important;
+    color: #ff0000 !important;
+    box-shadow: none !important;
 }
 
-.material-reader-button:hover,
-.material-reader-button:focus-visible {
-    background: #d8e7ff;
+/* .material-reader-actions > button.material-reader-button.is-secondary[data-reader-close]:hover,
+.material-reader-actions > button.material-reader-button.is-secondary[data-reader-close]:focus-visible {
+    background-color: #d8e7ff !important;
+    outline: 2px solid #2f73e0;
+    outline-offset: 2px;
+} */
+
+.material-reader-button.is-primary {
+    background: #102f54;
+    border: 1px solid #102f54;
+    color: #ffffff;
+}
+
+.material-reader-button.is-primary:hover,
+.material-reader-button.is-primary:focus-visible {
+    background: #174474;
     outline: 2px solid #2f73e0;
     outline-offset: 2px;
 }
@@ -2864,13 +2878,15 @@ img.material-reader-preview {
 .achievement-badge-status {
     margin-top: auto;
     padding: 5px 14px;
+    border: 1px solid #d8e7ff;
     border-radius: 4px;
-    color: #fff;
-    background: #102f54;
+    color: #102f54;
+    background: #eef4ff;
     font-size: 11px;
 }
 
 .achievement-badge-status.is-earned {
+    border-color: #102f54;
     color: #fff;
     background: #102f54;
 }
@@ -3093,9 +3109,10 @@ img.material-reader-preview {
     align-items: center;
     gap: 7px;
     padding: 5px 9px;
-    border: 1px solid #dfdfdf;
+    border: 1px solid #d8e7ff;
     border-radius: 7px;
-    background: #fff;
+    background: #eef4ff;
+    color: #102f54;
     white-space: nowrap;
 }
 
