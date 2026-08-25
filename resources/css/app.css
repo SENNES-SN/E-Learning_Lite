@@ -451,19 +451,19 @@ img.material-reader-preview {
     cursor: pointer;
 }
 
-.material-reader-actions > button.material-reader-button.is-secondary[data-reader-close] {
-    background-color: #eef4ff !important;
-    border-color: #d8e7ff !important;
-    color: #ff0000 !important;
-    box-shadow: none !important;
+.material-reader-button.is-secondary {
+    background: #eef4ff;
+    border: 1px solid #d8e7ff;
+    color: #102f54;
+    box-shadow: none;
 }
 
-/* .material-reader-actions > button.material-reader-button.is-secondary[data-reader-close]:hover,
-.material-reader-actions > button.material-reader-button.is-secondary[data-reader-close]:focus-visible {
-    background-color: #d8e7ff !important;
+.material-reader-button.is-secondary:hover,
+.material-reader-button.is-secondary:focus-visible {
+    background: #d8e7ff;
     outline: 2px solid #2f73e0;
     outline-offset: 2px;
-} */
+}
 
 .material-reader-button.is-primary {
     background: #102f54;
