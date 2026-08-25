@@ -417,7 +417,7 @@ Class yang direkomendasikan:
 - Area upload memuat ikon cloud-upload, instruksi drag-and-drop, link pemilih file, format, dan batas ukuran.
 - File terpilih tampil dalam baris soft blue dengan ikon file, nama, ukuran, dan tombol hapus.
 - Catatan opsional menggunakan textarea berukuran lebar.
-- Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan sebelum tombol kumpulkan.
+- Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan dalam panel terfokus selebar maksimal 760 px. Posisikan panel di tengah pada desktop, sejajarkan baris aksi dengan lebar panel, dan gunakan lebar penuh pada mobile.
 - Jika deadline terlewati, cegah pengumpulan dan tampilkan modal error waktu berakhir.
 - Pada mobile, gunakan judul aktivitas 16 px yang dapat membungkus dengan lega, hilangkan ikon jam dari kartu waktu, susun informasi waktu dan batas dalam dua kolom sejajar, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
 

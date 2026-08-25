@@ -1303,18 +1303,23 @@ img.material-reader-preview {
     justify-content: space-between;
 }
 
+.assignment-confirmation-shell {
+    width: min(760px, 100%);
+    margin: 24px auto 0;
+}
+
 .assignment-confirmation {
-    margin-top: 1px;
+    margin: 0;
 }
 
 .assignment-confirmation-card {
     display: grid;
-    width: min(408px, 100%);
-    min-height: 232px;
-    grid-template-columns: 164px minmax(0, 1fr);
+    width: 100%;
+    min-height: 250px;
+    grid-template-columns: 190px minmax(0, 1fr);
     align-items: center;
     margin: 13px 0 0;
-    padding: 8px;
+    padding: 20px 24px;
     border: 2px solid #102e52;
     border-radius: 8px;
     color: #0a0a0a;
@@ -1358,6 +1363,14 @@ img.material-reader-preview {
 .assignment-confirm-actions {
     justify-content: space-between;
     margin-top: 19px;
+}
+
+.assignment-confirm-actions .assignment-primary-button,
+.assignment-confirm-actions .assignment-secondary-button {
+    min-width: 164px;
+    min-height: 48px;
+    padding: 9px 20px;
+    font-size: 17px;
 }
 
 .assignment-confirm-actions form {

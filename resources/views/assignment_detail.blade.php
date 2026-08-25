@@ -221,39 +221,41 @@
                         <div class="assignment-page-feedback">Tugas ini sudah dikumpulkan.</div>
                     @endif
                 @else
-                    <section class="assignment-confirmation" aria-labelledby="assignment-confirmation-title">
-                        <h2 id="assignment-confirmation-title">Konfirmasi Pengumpulan</h2>
-                        <dl class="assignment-confirmation-card">
-                            <dt>Tugas</dt>
-                            <dd>{{ $taskName }}</dd>
-                            <dt>Batas Pengumpulan</dt>
-                            <dd>{{ $formatTimestamp($deadlineTimestamp) }}</dd>
-                            <dt>File yang diunggah</dt>
-                            <dd>
-                                @forelse ($submissionFiles as $file)
-                                    <span class="assignment-confirm-file">
-                                        <span class="assignment-file-icon"><i data-lucide="file-text"></i></span>
-                                        <span><strong>{{ $file['filename'] ?? 'Jawaban tugas' }}</strong><small>{{ ! empty($file['filesize']) ? number_format(((int) $file['filesize']) / 1048576, 2).' MB' : 'File jawaban' }}</small></span>
-                                    </span>
-                                @empty
-                                    <span>-</span>
-                                @endforelse
-                            </dd>
-                            <dt>Catatan</dt>
-                            <dd>{{ trim((string) ($assignmentAnswer ?? '')) !== '' ? $assignmentAnswer : '-' }}</dd>
-                        </dl>
-                    </section>
+                    <div class="assignment-confirmation-shell">
+                        <section class="assignment-confirmation" aria-labelledby="assignment-confirmation-title">
+                            <h2 id="assignment-confirmation-title">Konfirmasi Pengumpulan</h2>
+                            <dl class="assignment-confirmation-card">
+                                <dt>Tugas</dt>
+                                <dd>{{ $taskName }}</dd>
+                                <dt>Batas Pengumpulan</dt>
+                                <dd>{{ $formatTimestamp($deadlineTimestamp) }}</dd>
+                                <dt>File yang diunggah</dt>
+                                <dd>
+                                    @forelse ($submissionFiles as $file)
+                                        <span class="assignment-confirm-file">
+                                            <span class="assignment-file-icon"><i data-lucide="file-text"></i></span>
+                                            <span><strong>{{ $file['filename'] ?? 'Jawaban tugas' }}</strong><small>{{ ! empty($file['filesize']) ? number_format(((int) $file['filesize']) / 1048576, 2).' MB' : 'File jawaban' }}</small></span>
+                                        </span>
+                                    @empty
+                                        <span>-</span>
+                                    @endforelse
+                                </dd>
+                                <dt>Catatan</dt>
+                                <dd>{{ trim((string) ($assignmentAnswer ?? '')) !== '' ? $assignmentAnswer : '-' }}</dd>
+                            </dl>
+                        </section>
 
-                    <div class="assignment-confirm-actions">
-                        @if (! $isSubmitted)
-                            <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button data-loading-tone="dark">Batal</a>
-                            <form method="POST" action="{{ route('courses.modules.assignment.final-submit', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}">
-                                @csrf
-                                <button class="assignment-primary-button" type="submit" data-loading-button {{ $submissionFiles->isEmpty() && trim((string) ($assignmentAnswer ?? '')) === '' ? 'disabled' : '' }}>Kumpulkan</button>
-                            </form>
-                        @else
-                            <a class="assignment-secondary-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button data-loading-tone="dark">Kembali ke Detail Mata Kuliah</a>
-                        @endif
+                        <div class="assignment-confirm-actions">
+                            @if (! $isSubmitted)
+                                <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button data-loading-tone="dark">Batal</a>
+                                <form method="POST" action="{{ route('courses.modules.assignment.final-submit', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}">
+                                    @csrf
+                                    <button class="assignment-primary-button" type="submit" data-loading-button {{ $submissionFiles->isEmpty() && trim((string) ($assignmentAnswer ?? '')) === '' ? 'disabled' : '' }}>Kumpulkan</button>
+                                </form>
+                            @else
+                                <a class="assignment-secondary-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button data-loading-tone="dark">Kembali ke Detail Mata Kuliah</a>
+                            @endif
+                        </div>
                     </div>
                 @endif
             </div>
