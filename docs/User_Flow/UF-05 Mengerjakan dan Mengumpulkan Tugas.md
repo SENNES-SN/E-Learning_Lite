@@ -47,7 +47,7 @@ flowchart LR
 
 ## Alur Utama
 
-1. Mahasiswa membuka detail tugas.
+1. Mahasiswa membuka detail tugas, membaca deskripsi, instruksi tugas beserta panduan pengumpulan, lalu mengakses berkas tambahan yang tersedia.
 2. Mahasiswa menekan tombol **Kerjakan**.
 3. Sistem memastikan tugas masih berada dalam waktu pengumpulan.
 4. Mahasiswa mengerjakan tugas.

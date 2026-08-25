@@ -10,8 +10,8 @@
 <body class="student-shell-page final-assignment-page">
     @php
         $taskName = $module['name'] ?? $assignment['name'] ?? 'Detail Tugas';
-        $description = trim(strip_tags((string) ($assignment['intro'] ?? $module['description'] ?? '')));
-        $description = $description !== '' ? $description : 'Baca instruksi dengan teliti dan kumpulkan jawaban sebelum batas waktu.';
+        $taskDescription = trim((string) ($assignmentDescription ?? ''));
+        $activityInstructions = trim((string) ($assignmentInstructions ?? ''));
         $settings = $assignmentSettings ?? [
             'file_enabled' => true,
             'text_enabled' => true,
@@ -26,6 +26,7 @@
         ];
         $isSubmitted = (bool) ($settings['is_submitted'] ?? false);
         $submissionFiles = collect($settings['submission_files'] ?? [])->filter(fn ($file) => is_array($file))->values();
+        $attachmentFiles = collect($assignmentAttachments ?? [])->filter(fn ($file) => is_array($file))->values();
         $deadlineTimestamp = (int) ($assignment['cutoffdate'] ?? 0) > 0
             ? (int) $assignment['cutoffdate']
             : (int) ($assignment['duedate'] ?? 0);
@@ -90,7 +91,6 @@
 
                 @if ($pageMode === 'detail')
                     <section class="assignment-time-card" aria-label="Jadwal pengumpulan tugas">
-                        <span class="assignment-time-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span>
                         <div>
                             <span>Waktu Pengumpulan</span>
                             <strong>{{ $formatTimestamp($availableTimestamp) }}</strong>
@@ -103,17 +103,24 @@
 
                     <section class="assignment-copy-section" aria-labelledby="assignment-description-title">
                         <h2 id="assignment-description-title">Deskripsi Tugas</h2>
-                        <p>{{ $description }}</p>
+                        @if ($taskDescription !== '')
+                            <p class="assignment-activity-instructions">{{ $taskDescription }}</p>
+                        @else
+                            <p>Deskripsi tugas belum tersedia.</p>
+                        @endif
                     </section>
 
                     <section class="assignment-copy-section" aria-labelledby="assignment-instructions-title">
                         <h2 id="assignment-instructions-title">Instruksi Tugas</h2>
-                        <ul>
+                        @if ($activityInstructions !== '')
+                            <p class="assignment-activity-instructions">{{ $activityInstructions }}</p>
+                        @endif
+                        <ul class="assignment-guidance-list {{ $activityInstructions !== '' ? 'has-source-instructions' : '' }}">
                             <li>Baca deskripsi tugas dengan teliti.</li>
                             <li>Kerjakan sesuai format yang telah ditentukan.</li>
                             <li>Pastikan semua bagian tugas terjawab.</li>
                             @if ($settings['file_enabled'] ?? true)
-                                <li>Unggah jawaban dalam format {{ $allowedTypesLabel }}.</li>
+                                <li>Unggah jawaban dalam format yang sesuai.</li>
                             @endif
                             <li>Pastikan file dapat dibuka dan tidak rusak.</li>
                         </ul>
@@ -121,9 +128,9 @@
 
                     <section class="assignment-copy-section" aria-labelledby="assignment-attachments-title">
                         <h2 id="assignment-attachments-title">Lampiran</h2>
-                        @if (! empty($module['contents']) && is_array($module['contents']))
+                        @if ($attachmentFiles->isNotEmpty())
                             <div class="assignment-attachment-list">
-                                @foreach ($module['contents'] as $content)
+                                @foreach ($attachmentFiles as $content)
                                     @php
                                         $filename = $content['filename'] ?? 'Lampiran tugas';
                                         $fileUrl = $content['fileurl'] ?? null;
@@ -139,7 +146,7 @@
                                         <span class="assignment-file-icon" aria-hidden="true"><i data-lucide="file-text"></i></span>
                                         <span><strong>{{ $filename }}</strong><small>{{ $fileSizeLabel }}</small></span>
                                         @if ($fileUrl)
-                                            <a href="{{ $fileUrl }}" download aria-label="Unduh {{ $filename }}"><i data-lucide="download"></i></a>
+                                            <a href="{{ route('moodle.file.download', ['url' => $fileUrl, 'filename' => $filename]) }}" aria-label="Unduh {{ $filename }}"><i data-lucide="download"></i></a>
                                         @endif
                                     </article>
                                 @endforeach
@@ -153,7 +160,7 @@
                         @if ($isSubmitted)
                             <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}" data-loading-button>Lihat Pengumpulan</a>
                         @elseif (! $deadlinePassed)
-                            <a class="assignment-primary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button>Kerjakan Tugas</a>
+                            <a class="assignment-primary-button assignment-start-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button>Kerjakan Tugas</a>
                         @endif
                     </div>
                 @elseif ($pageMode === 'work')

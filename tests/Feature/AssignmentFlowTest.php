@@ -46,8 +46,22 @@ class AssignmentFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Tugas 1')
             ->assertSee('Belum Dikumpulkan')
-            ->assertSee('Deskripsi Tugas')
-            ->assertSee('Panduan_Tugas1.pdf')
+            ->assertDontSee('assignment-time-icon', false)
+            ->assertSeeInOrder([
+                'Deskripsi Tugas',
+                'Penugasan ini bertujuan untuk menguji pemahaman mahasiswa.',
+                'Instruksi Tugas',
+                'Pilih satu permasalahan sederhana dan unggah jawaban dalam bentuk PDF.',
+                'Baca deskripsi tugas dengan teliti.',
+                'Lampiran',
+                'Panduan_Tugas1.pdf',
+            ])
+            ->assertDontSee('Instruksi Aktivitas')
+            ->assertDontSee('Panduan Pengumpulan di E-Learning Lite')
+            ->assertDontSee('alert(&quot;xss&quot;)', false)
+            ->assertSee('Petunjuk_Tambahan.pdf')
+            ->assertSee(route('moodle.file.download'), false)
+            ->assertDontSee('Tidak ada lampiran tambahan untuk tugas ini.')
             ->assertSee('Kerjakan Tugas')
             ->assertDontSee('Buka di Moodle');
     }
@@ -136,11 +150,6 @@ class AssignmentFlowTest extends TestCase
                 'instance' => 55,
                 'modname' => 'assign',
                 'name' => 'Tugas 1',
-                'contents' => [[
-                    'filename' => 'Panduan_Tugas1.pdf',
-                    'fileurl' => 'https://elearning.example.test/pluginfile.php/11/panduan.pdf',
-                    'filesize' => 2569011,
-                ]],
             ]],
         ]];
     }
@@ -151,7 +160,18 @@ class AssignmentFlowTest extends TestCase
             'id' => 55,
             'cmid' => 11,
             'name' => 'Tugas 1',
-            'intro' => 'Kerjakan tugas sesuai instruksi yang diberikan.',
+            'intro' => '<p>Penugasan ini bertujuan untuk menguji pemahaman mahasiswa.</p><script>alert("xss")</script>',
+            'activity' => '<p>Pilih satu permasalahan sederhana dan unggah jawaban dalam bentuk PDF.</p>',
+            'activityattachments' => [[
+                'filename' => 'Panduan_Tugas1.pdf',
+                'fileurl' => 'https://elearning.example.test/webservice/pluginfile.php/11/panduan.pdf',
+                'filesize' => 2569011,
+            ]],
+            'introattachments' => [[
+                'filename' => 'Petunjuk_Tambahan.pdf',
+                'fileurl' => 'https://elearning.example.test/webservice/pluginfile.php/11/petunjuk.pdf',
+                'filesize' => 512000,
+            ]],
             'allowsubmissionsfromdate' => time() - 3600,
             'duedate' => $deadline,
             'cutoffdate' => $deadline,

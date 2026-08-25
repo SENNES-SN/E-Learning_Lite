@@ -330,6 +330,8 @@ Fitur ini memungkinkan mahasiswa melihat detail course yang berasal dari Moodle,
 | REQ-023 | Sistem harus menyediakan fitur untuk mengakses dan menampilkan materi pembelajaran/resource course dari Moodle. | High |
 | REQ-024 | Sistem harus menyediakan fitur untuk mengakses kuis dan informasi aktivitas pembelajaran dari Moodle. | High |
 | REQ-025 | Sistem harus menyediakan fitur akses dan pengumpulan tugas melalui E-Learning Lite apabila layanan Moodle Web Service mendukung dan mahasiswa memiliki hak akses yang sesuai. | High |
+| REQ-025A | Detail tugas harus menampilkan deskripsi assignment, kemudian instruksi assignment yang diikuti panduan pengumpulan tambahan dari aplikasi, dengan judul antarmuka `Deskripsi Tugas` dan `Instruksi Tugas`. | High |
+| REQ-025B | Detail tugas harus menampilkan berkas tambahan assignment yang tersedia dan diizinkan bagi mahasiswa oleh E-Learning UAD/Moodle pada bagian Lampiran. | High |
 | REQ-026 | Sistem harus menampilkan nilai mahasiswa jika data nilai tersedia dari Moodle. | Medium |
 | REQ-027 | Sistem harus menampilkan isi course yang dapat diakses mahasiswa, seperti topik/section, materi/aktivitas, dan informasi dasar course dari Moodle. | Medium |
 | REQ-027A | Jika materi/resource tidak menyediakan activity completion Moodle, tombol Selesai harus mencatat penyelesaian khusus E-Learning Lite agar progress dan feedback gamifikasi tetap dapat digunakan, tanpa mengubah atau mengklaim status completion Moodle. | High |

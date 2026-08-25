@@ -410,13 +410,16 @@ Class yang direkomendasikan:
 ### 6.5 Pengerjaan Tugas
 
 - Header memuat ikon tugas biru dan nama tugas.
+- Detail tugas menampilkan `Deskripsi Tugas`, lalu `Instruksi Tugas` yang berisi instruksi dari sumber pembelajaran diikuti panduan pengumpulan dari aplikasi tanpa label atau penyebutan nama platform.
+- Bagian `Lampiran` menampilkan berkas tambahan tugas yang tersedia bagi mahasiswa dari E-Learning UAD, lengkap dengan nama, ukuran, dan aksi unduh; tampilkan empty state hanya jika tidak ada berkas yang diberikan. Pada desktop, gunakan baris ringkas dengan tinggi minimum sekitar 76 px.
+- Tombol `Kerjakan Tugas` menggunakan ukuran ringkas pada desktop dan tetap selebar konten pada mobile.
 - Dropzone terdiri dari border luar navy dan area dalam blue-50 dengan dashed border biru.
 - Area upload memuat ikon cloud-upload, instruksi drag-and-drop, link pemilih file, format, dan batas ukuran.
 - File terpilih tampil dalam baris soft blue dengan ikon file, nama, ukuran, dan tombol hapus.
 - Catatan opsional menggunakan textarea berukuran lebar.
 - Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan sebelum tombol kumpulkan.
 - Jika deadline terlewati, cegah pengumpulan dan tampilkan modal error waktu berakhir.
-- Pada mobile, padatkan header dan kartu waktu menjadi susunan dua kolom, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
+- Pada mobile, gunakan judul aktivitas 16 px yang dapat membungkus dengan lega, hilangkan ikon jam dari kartu waktu, susun informasi waktunya secara vertikal, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
 
 Class yang direkomendasikan:
 
@@ -439,7 +442,7 @@ Class yang direkomendasikan:
 - Semua nomor soal memakai tampilan netral tanpa membedakan status dijawab dan belum dijawab; soal yang sedang dibuka tetap diberi outline sebagai konteks navigasi.
 - Status respons tetap disimpan selama sesi tab untuk validasi penyelesaian, tetapi tidak mengubah warna nomor. Saat nomor atau tombol navigasi pengerjaan kuis sedang memuat, gunakan spinner putih agar tetap kontras pada desktop maupun mobile.
 - Setelah selesai, tampilkan modal sukses yang memuat skor, poin diperoleh, dan tombol kembali ke detail kursus.
-- Pada mobile, detail awal quiz memakai header ringkas, kartu akses tersusun dua kolom, informasi quiz selebar konten, dan tombol mulai selebar konten. Halaman pengerjaan memakai satu kolom; ringkasan hanya menampilkan ikon jam dan waktu tersisa, perpindahan soal menggunakan tombol panah tanpa label, serta daftar nomor disembunyikan. Pada soal selain yang terakhir tampil panah sebelumnya dan berikutnya; pada soal terakhir panah berikutnya digantikan tombol `Selesai` dalam baris yang sama.
+- Pada mobile, detail awal quiz memakai judul aktivitas 16 px yang dapat membungkus dengan lega, kartu akses tanpa ikon jam dengan informasi waktu tersusun vertikal, informasi quiz selebar konten, dan tombol mulai selebar konten. Halaman pengerjaan memakai satu kolom; ringkasan hanya menampilkan ikon jam dan waktu tersisa, perpindahan soal menggunakan tombol panah tanpa label, serta daftar nomor disembunyikan. Pada soal selain yang terakhir tampil panah sebelumnya dan berikutnya; pada soal terakhir panah berikutnya digantikan tombol `Selesai` dalam baris yang sama.
 - Saat pengerjaan dimulai, gunakan focus mode tanpa topbar agar ruang vertikal diprioritaskan untuk soal; seluruh baris opsi menjadi target interaksi dengan nomor opsi dan isi jawaban sejajar.
 - Pada mobile, tombol pembuka/penutup sidebar tidak dirender selama pengerjaan sehingga navigasi samping tidak dapat diakses sebelum kuis diselesaikan.
 - Label bawaan Moodle seperti `Teks soal`, `Soal [nomor] Jawaban`, dan penanda opsi `A.`/`B.`/`C.`/`D.` tidak ditampilkan; tampilkan langsung isi pertanyaan dan isi setiap jawaban.

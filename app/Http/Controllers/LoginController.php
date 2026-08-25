@@ -435,6 +435,9 @@ class LoginController extends Controller
         $contents = null;
         $courseProgress = null;
         $assignmentAnswer = null;
+        $assignmentDescription = '';
+        $assignmentInstructions = '';
+        $assignmentAttachments = [];
         $assignments = null;
         $quizzes = null;
 
@@ -470,6 +473,9 @@ class LoginController extends Controller
                     $assignments,
                     $module,
                 );
+                $assignmentDescription = $this->moodlePlainText($assignment['intro'] ?? $module['description'] ?? '');
+                $assignmentInstructions = $this->moodlePlainText($assignment['activity'] ?? '');
+                $assignmentAttachments = $this->assignmentAttachments($assignment, $module);
 
                 if (! empty($assignment['id'])) {
                     try {
@@ -526,6 +532,9 @@ class LoginController extends Controller
             'submissionStatus' => $submissionStatus,
             'assignmentSettings' => $assignmentSettings,
             'assignmentAnswer' => $assignmentAnswer,
+            'assignmentDescription' => $assignmentDescription,
+            'assignmentInstructions' => $assignmentInstructions,
+            'assignmentAttachments' => $assignmentAttachments,
             'assignmentSubmissions' => $assignmentSubmissions,
             'assignmentGrade' => $assignmentGrade,
             'assignmentSubmissionError' => $assignmentSubmissionError,
@@ -1555,6 +1564,23 @@ class LoginController extends Controller
         }
 
         return 'Layanan pembelajaran sedang mengalami gangguan. Silakan coba lagi beberapa saat.';
+    }
+
+    protected function moodlePlainText(mixed $value): string
+    {
+        $html = (string) $value;
+        $html = preg_replace('/<(script|style)\b[^>]*>.*?<\/\1>/is', '', $html) ?? $html;
+        $html = preg_replace('/<\s*br\s*\/?>/i', "\n", $html) ?? $html;
+        $html = preg_replace('/<\s*li\b[^>]*>/i', '- ', $html) ?? $html;
+        $html = preg_replace('/<\s*\/\s*(p|div|li|h[1-6])\s*>/i', "\n", $html) ?? $html;
+
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        $text = preg_replace('/[^\S\n]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/ *\n */u', "\n", $text) ?? $text;
+        $text = preg_replace('/\n{3,}/', "\n\n", $text) ?? $text;
+
+        return trim($text);
     }
 
     protected function isInvalidCredentialsError(\Throwable $throwable): bool
@@ -2844,6 +2870,49 @@ class LoginController extends Controller
         }
 
         return null;
+    }
+
+    protected function assignmentAttachments(?array $assignment, array $module): array
+    {
+        $sources = [
+            $assignment['activityattachments'] ?? [],
+            $assignment['introattachments'] ?? [],
+            $module['contents'] ?? [],
+        ];
+        $attachments = [];
+        $seen = [];
+
+        foreach ($sources as $source) {
+            if (! is_array($source)) {
+                continue;
+            }
+
+            foreach ($source as $file) {
+                if (! is_array($file)) {
+                    continue;
+                }
+
+                $filename = trim((string) ($file['filename'] ?? ''));
+                $fileUrl = trim((string) ($file['fileurl'] ?? ''));
+
+                if ($filename === '' || $filename === '.' || $fileUrl === '') {
+                    continue;
+                }
+
+                $key = strtolower($filename).'|'.$fileUrl;
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $attachments[] = array_merge($file, [
+                    'filename' => $filename,
+                    'fileurl' => $fileUrl,
+                ]);
+            }
+        }
+
+        return $attachments;
     }
 
     protected function findQuizForModule(mixed $quizzesResponse, array $module): ?array

@@ -70,7 +70,6 @@
                     @endif
 
                     <section class="quiz-access-card" aria-label="Jadwal akses kuis">
-                        <span class="quiz-access-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span>
                         <div><span>Waktu Akses</span><strong>{{ $formatTimestamp($timeOpen) }}</strong></div>
                         <div><span>Batas Akses</span><strong>{{ $formatTimestamp($timeClose) }}</strong></div>
                     </section>

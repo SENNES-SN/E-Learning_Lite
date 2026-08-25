@@ -36,6 +36,7 @@ class QuizFlowTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertDontSee('quiz-access-icon', false)
             ->assertSee('Quiz 1')
             ->assertSee('Belum Dikerjakan')
             ->assertSee('Jumlah Soal')
