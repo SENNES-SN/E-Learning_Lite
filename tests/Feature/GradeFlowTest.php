@@ -46,6 +46,7 @@ class GradeFlowTest extends TestCase
                         'itemname' => 'Tugas Belum Dikumpulkan',
                         'graderaw' => null,
                         'grademax' => 100,
+                        'gradedatesubmitted' => $assignmentDate + 1800,
                     ],
                     [
                         'id' => 3,
@@ -104,7 +105,10 @@ class GradeFlowTest extends TestCase
         $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(32)->andReturn([
             'lastattempt' => [
                 'canedit' => true,
-                'submission' => ['status' => 'new'],
+                'submission' => [
+                    'status' => 'draft',
+                    'timemodified' => $assignmentDate + 1800,
+                ],
             ],
         ]);
         $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(33)->andReturn([

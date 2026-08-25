@@ -37,7 +37,7 @@ flowchart LR
 1. Mahasiswa membuka detail kursus.
 2. Mahasiswa memilih **Nilai**.
 3. Sistem menampilkan halaman nilai.
-4. Sistem memeriksa tugas yang sudah dikumpulkan oleh mahasiswa.
+4. Sistem memeriksa tugas dengan submission berstatus `submitted`; draft dari tahap pengerjaan atau konfirmasi tidak dianggap sudah dikumpulkan.
 5. Sistem menampilkan tugas yang sudah dikumpulkan dengan status **Belum Dinilai** atau **Sudah Dinilai**; tugas yang belum dikumpulkan tidak ditampilkan.
 6. Sistem memeriksa kuis yang sudah dikerjakan oleh mahasiswa.
 7. Sistem menampilkan kuis yang sudah dikerjakan dengan status nilainya; kuis yang belum dikerjakan tidak ditampilkan.

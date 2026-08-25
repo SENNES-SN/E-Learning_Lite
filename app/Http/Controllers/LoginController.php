@@ -1533,6 +1533,13 @@ class LoginController extends Controller
             $assignmentSubmission = $group === 'tasks'
                 ? ($assignmentSubmissions[(int) ($item['iteminstance'] ?? 0)] ?? null)
                 : null;
+            if (is_array($assignmentSubmission) && ! (bool) ($assignmentSubmission['is_submitted'] ?? false)) {
+                continue;
+            }
+            if ($group === 'tasks' && ! is_array($assignmentSubmission) && $gradeText === null) {
+                continue;
+            }
+
             if (is_array($assignmentSubmission) && $submittedAt === null) {
                 $submissionTimestamp = (int) ($assignmentSubmission['submitted_at'] ?? 0);
                 $submittedAt = $submissionTimestamp > 0 ? $submissionTimestamp : null;
@@ -1589,8 +1596,11 @@ class LoginController extends Controller
                         ? $lastAttempt['submission']
                         : [];
                     $submissionStatus = strtolower((string) ($submission['status'] ?? ''));
-                    $isSubmitted = $submissionStatus === 'submitted'
-                        || (isset($lastAttempt['canedit']) && ! (bool) $lastAttempt['canedit'] && $submissionStatus !== 'new');
+                    if ($submissionStatus === '') {
+                        continue;
+                    }
+
+                    $isSubmitted = $submissionStatus === 'submitted';
                     $submittedAt = null;
 
                     foreach (['timemodified', 'timecreated', 'timesubmitted'] as $dateField) {
