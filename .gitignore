@@ -41,7 +41,7 @@ Thumbs.db
 
 # Build / cache
 /public/build/
-/public/hot/
+/public/hot
 .phpunit.result.cache
 .phpunit.cache/
 .npm/
