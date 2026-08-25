@@ -1450,7 +1450,10 @@ class LoginController extends Controller
             'courseId' => $courseId,
             'course' => $course,
             'gradesData' => $gradesData,
-            'gradeRows' => $this->studentGradeRows($gradesData),
+            'gradeRows' => $this->studentGradeRows(
+                $gradesData,
+                $this->studentAssignmentSubmissionData($gradesData),
+            ),
             'gradeError' => $gradeError,
         ]);
     }
@@ -1458,7 +1461,7 @@ class LoginController extends Controller
     /**
      * @return array{tasks: array<int, array<string, mixed>>, quizzes: array<int, array<string, mixed>>}
      */
-    protected function studentGradeRows(mixed $gradesData): array
+    protected function studentGradeRows(mixed $gradesData, array $assignmentSubmissions = []): array
     {
         $rows = ['tasks' => [], 'quizzes' => []];
         if (! is_array($gradesData)) {
@@ -1527,7 +1530,17 @@ class LoginController extends Controller
                 }
             }
 
-            if ($gradeText === null && $submittedAt === null) {
+            $assignmentSubmission = $group === 'tasks'
+                ? ($assignmentSubmissions[(int) ($item['iteminstance'] ?? 0)] ?? null)
+                : null;
+            if (is_array($assignmentSubmission) && $submittedAt === null) {
+                $submissionTimestamp = (int) ($assignmentSubmission['submitted_at'] ?? 0);
+                $submittedAt = $submissionTimestamp > 0 ? $submissionTimestamp : null;
+            }
+
+            $hasSubmittedAssignment = is_array($assignmentSubmission)
+                && (bool) ($assignmentSubmission['is_submitted'] ?? false);
+            if ($gradeText === null && $submittedAt === null && ! $hasSubmittedAssignment) {
                 continue;
             }
 
@@ -1543,6 +1556,62 @@ class LoginController extends Controller
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<int, array{is_submitted: bool, submitted_at: ?int}>
+     */
+    protected function studentAssignmentSubmissionData(mixed $gradesData): array
+    {
+        if (! is_array($gradesData)) {
+            return [];
+        }
+
+        $submissions = [];
+        foreach (($gradesData['usergrades'] ?? []) as $userGrade) {
+            if (! is_array($userGrade)) {
+                continue;
+            }
+
+            foreach (($userGrade['gradeitems'] ?? []) as $item) {
+                $module = strtolower(trim((string) ($item['itemmodule'] ?? '')));
+                $assignmentId = (int) ($item['iteminstance'] ?? 0);
+                if (! in_array($module, ['assign', 'assignment'], true) || $assignmentId <= 0 || isset($submissions[$assignmentId])) {
+                    continue;
+                }
+
+                try {
+                    $status = $this->activeMoodleService()->getAssignmentSubmissionStatus($assignmentId);
+                    $lastAttempt = is_array($status) && is_array($status['lastattempt'] ?? null)
+                        ? $status['lastattempt']
+                        : [];
+                    $submission = is_array($lastAttempt['submission'] ?? null)
+                        ? $lastAttempt['submission']
+                        : [];
+                    $submissionStatus = strtolower((string) ($submission['status'] ?? ''));
+                    $isSubmitted = $submissionStatus === 'submitted'
+                        || (isset($lastAttempt['canedit']) && ! (bool) $lastAttempt['canedit'] && $submissionStatus !== 'new');
+                    $submittedAt = null;
+
+                    foreach (['timemodified', 'timecreated', 'timesubmitted'] as $dateField) {
+                        $candidate = (int) ($submission[$dateField] ?? 0);
+                        if ($candidate > 0) {
+                            $submittedAt = $candidate;
+                            break;
+                        }
+                    }
+
+                    $submissions[$assignmentId] = [
+                        'is_submitted' => $isSubmitted,
+                        'submitted_at' => $submittedAt,
+                    ];
+                } catch (\Throwable) {
+                    // Grade item tetap digunakan jika status submission tidak dapat dibaca.
+                }
+            }
+        }
+
+        return $submissions;
     }
 
     protected function activeMoodleService(): MoodleService

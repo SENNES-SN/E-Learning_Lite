@@ -33,15 +33,16 @@ class GradeFlowTest extends TestCase
                         'id' => 1,
                         'itemtype' => 'mod',
                         'itemmodule' => 'assign',
+                        'iteminstance' => 31,
                         'itemname' => 'Tugas 1',
                         'graderaw' => 80,
                         'grademax' => 100,
-                        'gradedatesubmitted' => $assignmentDate,
                     ],
                     [
                         'id' => 2,
                         'itemtype' => 'mod',
                         'itemmodule' => 'assign',
+                        'iteminstance' => 32,
                         'itemname' => 'Tugas Belum Dikumpulkan',
                         'graderaw' => null,
                         'grademax' => 100,
@@ -59,6 +60,7 @@ class GradeFlowTest extends TestCase
                         'id' => 4,
                         'itemtype' => 'mod',
                         'itemmodule' => 'assign',
+                        'iteminstance' => 33,
                         'itemname' => 'Tugas Menunggu Penilaian',
                         'graderaw' => null,
                         'grademax' => 100,
@@ -89,6 +91,30 @@ class GradeFlowTest extends TestCase
                     ],
                 ],
             ]],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(31)->andReturn([
+            'lastattempt' => [
+                'canedit' => false,
+                'submission' => [
+                    'status' => 'submitted',
+                    'timemodified' => $assignmentDate,
+                ],
+            ],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(32)->andReturn([
+            'lastattempt' => [
+                'canedit' => true,
+                'submission' => ['status' => 'new'],
+            ],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(33)->andReturn([
+            'lastattempt' => [
+                'canedit' => false,
+                'submission' => [
+                    'status' => 'submitted',
+                    'timemodified' => $assignmentDate + 3600,
+                ],
+            ],
         ]);
 
         $this->app->instance(MoodleService::class, $service);
