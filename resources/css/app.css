@@ -7796,6 +7796,8 @@ img.material-reader-preview {
 
     @media (max-width: 767px) {
         .login-page,
+        .login-layout,
+        .login-brand-panel,
         .login-form-panel {
             background: #eef4ff !important;
         }
