@@ -7807,8 +7807,13 @@ img.material-reader-preview {
             min-height: 100dvh;
         }
 
+        .login-layout {
+            grid-template-rows: max-content max-content;
+            align-content: safe center;
+        }
+
         .login-brand-panel {
-            padding: 16px;
+            padding: 16px 16px 12px;
         }
 
         .login-brand-mark {

@@ -338,6 +338,7 @@ Gunakan ikon outline dari Lucide dengan stroke konsisten sekitar `2px`. Jangan m
 - Urutan: judul, deskripsi singkat, username, password, lalu tombol Login.
 - Tombol Login memiliki lebar sekitar setengah hingga dua pertiga card dan rata tengah.
 - Error autentikasi ditampilkan di dalam card, dekat dengan form, tanpa menggeser hierarki secara berlebihan.
+- Pada mobile, kelompok logo, nama produk, dan tagline harus berjarak rapat dengan login card serta dipusatkan sebagai satu komposisi vertikal, tanpa pembagian tinggi layar yang menciptakan ruang kosong berlebihan.
 
 Class yang direkomendasikan:
 
