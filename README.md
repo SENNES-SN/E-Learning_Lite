@@ -2,7 +2,7 @@
 
 E-Learning Lite adalah prototype aplikasi web berbasis Laravel 12 yang menjadi antarmuka alternatif untuk E-Learning UAD/Moodle. Aplikasi ini menggunakan Moodle Web Service untuk login, mengambil data pembelajaran, dan mengirim data pembelajaran tertentu sesuai hak akses pengguna serta layanan Moodle yang tersedia.
 
-Data akademik utama tetap berada di E-Learning UAD/Moodle. Penyimpanan lokal hanya dipakai untuk kebutuhan teknis prototype seperti session file, cache sementara, log, atau konfigurasi aplikasi.
+Data akademik utama tetap berada di E-Learning UAD/Moodle. SQLite menyimpan completion gamifikasi E-Learning Lite untuk perhitungan poin dan leaderboard lintas akun; session dan cache memakai file pada setup default.
 
 ## Yang Perlu Diketahui
 
@@ -103,13 +103,21 @@ docker-compose up -d --build
 docker compose exec app php artisan key:generate
 ```
 
-### 6. Buat storage link
+### 6. Jalankan migrasi database
+
+```bash
+docker compose exec app php artisan migrate
+```
+
+Migrasi membuat tabel completion gamifikasi pada `database/database.sqlite`.
+
+### 7. Buat storage link
 
 ```bash
 docker compose exec app php artisan storage:link
 ```
 
-### 7. Install dan build asset frontend
+### 8. Install dan build asset frontend
 
 Jalankan dari host/laptop, bukan dari container:
 
@@ -124,7 +132,7 @@ Untuk development dengan hot reload:
 npm run dev
 ```
 
-### 8. Buka aplikasi
+### 9. Buka aplikasi
 
 Akses:
 
@@ -143,8 +151,8 @@ Bagian ini menjadi dokumentasi operasional untuk memahami fitur, akses, dan alur
 - E-Learning Lite adalah antarmuka alternatif untuk E-Learning UAD/Moodle.
 - Data akademik utama seperti course, peserta, materi, kuis, tugas, nilai, dan progress tetap berasal dari E-Learning UAD/Moodle.
 - Integrasi dilakukan melalui Moodle Web Service sesuai hak akses pengguna dan layanan Moodle yang tersedia.
-- Feedback gamifikasi seperti poin, badge/lencana, leaderboard, progress bar, dan reward dihitung dari aktivitas/progress Moodle yang dapat diakses.
-- Penyimpanan lokal hanya untuk kebutuhan teknis prototype seperti session file, cache sementara, log, atau konfigurasi aplikasi.
+- Setiap aktivitas yang selesai bernilai 10 poin tanpa bonus poin; completion gamifikasi disimpan di SQLite agar leaderboard dapat dibaca lintas akun.
+- Penyimpanan lokal dipakai untuk completion gamifikasi E-Learning Lite serta kebutuhan teknis seperti session file, cache, log, dan konfigurasi aplikasi.
 - E-Learning Lite tidak menjadi LMS lokal pengganti Moodle dan tidak menjadi sumber data akademik utama.
 
 ### Role dan Akses
@@ -196,7 +204,7 @@ Tampilan dosen mengikuti struktur utama berikut:
 | Detail course | Moodle Web Service | Bergantung data course yang disediakan Moodle. |
 | Peserta course | Moodle Web Service | Tampil jika endpoint/data peserta tersedia. |
 | Nilai/grade | Moodle Web Service | Tampil jika data nilai tersedia dan pengguna berhak melihatnya. |
-| Feedback gamifikasi | Aktivitas/progress Moodle | Dihitung sebagai feedback tampilan, bukan sumber data akademik baru. |
+| Feedback gamifikasi | SQLite E-Learning Lite | Setiap completion aktivitas unik bernilai 10 poin; bukan sumber data akademik Moodle. |
 
 ### Alur Penggunaan Singkat
 
@@ -206,7 +214,7 @@ Tampilan dosen mengikuti struktur utama berikut:
 4. Pengguna masuk ke dashboard.
 5. Pengguna membuka daftar course di `/courses`.
 6. Kursus baru dibuat melalui E-Learning UAD/Moodle dan akan tampil di Lite jika akun memiliki akses.
-7. Mahasiswa melihat ringkasan progress, deadline, nilai, dan feedback gamifikasi berdasarkan data Moodle yang tersedia.
+7. Mahasiswa melihat ringkasan progress, deadline, nilai, dan feedback gamifikasi; poin serta leaderboard dibaca dari completion yang tercatat di E-Learning Lite.
 
 ### Batasan Fitur
 
@@ -215,7 +223,7 @@ Tampilan dosen mengikuti struktur utama berikut:
 - Materi dan aktivitas dibuka terlebih dahulu melalui halaman E-Learning Lite. Link ke E-Learning UAD/Moodle hanya menjadi fallback untuk aktivitas interaktif yang membutuhkan engine Moodle, seperti pengerjaan kuis atau submit tugas.
 - Untuk assignment, Lite membedakan akses dosen dan mahasiswa berdasarkan role user login pada course Moodle. Mahasiswa dapat melihat lampiran tugas, aturan pengajuan, draft jawaban yang sudah tersimpan, submit jawaban teks/file sebagai draft, hapus file draft per item, ganti file draft, dan final submit ke Moodle. Dosen tidak melihat form jawaban mahasiswa; dosen melihat daftar submission yang sudah dikirim dan dapat memberi nilai/feedback apabila layanan Moodle mengizinkan. Upload file mengikuti jumlah maksimum, sisa slot upload, ukuran maksimum, dan format berkas yang dikirim oleh assignment Moodle. Saat menambah file, Lite mempertahankan file draft lama dan menambahkan file baru sampai batas maksimum terpenuhi. Jika draft hanya tersisa satu file, file terakhir tidak dikosongkan melalui hapus draft; gunakan mode ganti file draft agar file lama diganti oleh file baru. Jika jawaban sudah final submit, upload dan submit ulang dinonaktifkan di Lite.
 - Jika Moodle Web Service tidak dapat diakses, aplikasi menampilkan pesan kegagalan dan fitur yang membutuhkan Moodle tidak dapat berjalan.
-- Feedback gamifikasi bergantung pada data aktivitas/progress Moodle yang bisa dibaca.
+- Daftar peserta dan struktur aktivitas gamifikasi tetap bergantung pada data Moodle yang bisa dibaca.
 - Notifikasi email tidak dibuat oleh E-Learning Lite; email mengikuti mekanisme E-Learning UAD/Moodle jika tersedia.
 - Prototype ini diutamakan untuk laptop/PC. Akses HP hanya tambahan.
 
@@ -301,7 +309,7 @@ docker compose up -d
 
 ### Error koneksi database
 
-Setup default tidak membutuhkan database. Jika muncul error database seperti `Base table or view not found`, cek apakah `.env` masih memakai driver database.
+Setup default menggunakan SQLite untuk completion gamifikasi. Jika muncul error seperti `Base table or view not found`, periksa konfigurasi database dan pastikan migrasi sudah dijalankan.
 
 Gunakan konfigurasi ini:
 
@@ -312,10 +320,11 @@ CACHE_STORE=file
 QUEUE_CONNECTION=sync
 ```
 
-Lalu bersihkan config:
+Lalu bersihkan config dan jalankan migrasi:
 
 ```bash
 docker compose exec app php artisan config:clear
+docker compose exec app php artisan migrate
 docker compose restart app
 ```
 

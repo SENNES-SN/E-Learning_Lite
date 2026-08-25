@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\GamificationActivityCompletion;
 use App\Services\MoodleService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class AchievementFlowTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -82,6 +86,49 @@ class AchievementFlowTest extends TestCase
             ->assertSee('Anda');
     }
 
+    public function test_leaderboard_reads_another_students_local_points_when_moodle_completion_is_unavailable(): void
+    {
+        foreach (range(1, 10) as $moduleId) {
+            GamificationActivityCompletion::query()->create([
+                'moodle_user_id' => 21,
+                'course_id' => 7,
+                'module_id' => $moduleId,
+                'completed_at' => now()->subMinutes(11 - $moduleId),
+            ]);
+        }
+
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldReceive('getCourse')->once()->with(7)->andReturn([
+            'id' => 7,
+            'fullname' => 'Pengantar UI/UX Design',
+        ]);
+        $service->shouldReceive('getCourseContents')->once()->with(7)->andReturn($this->courseContents(10));
+        $service->shouldReceive('getActivityCompletionStatus')->once()->with(7, 22)->andReturn([
+            'statuses' => $this->completionStatuses(2, 10),
+        ]);
+        $service->shouldReceive('getEnrolledUsers')->once()->with(7)->andReturn([
+            ['id' => 21, 'fullname' => 'Mahasiswa Seratus Poin', 'roles' => [['shortname' => 'student']]],
+            ['id' => 22, 'fullname' => 'Mahasiswa Aktif', 'roles' => [['shortname' => 'student']]],
+        ]);
+        $service->shouldReceive('getActivityCompletionStatus')->once()->with(7, 21)
+            ->andThrow(new \RuntimeException('Tidak diizinkan melihat completion mahasiswa lain.'));
+
+        $this->app->instance(MoodleService::class, $service);
+
+        $response = $this->withSession([
+            'logged_in' => true,
+            'moodle_token' => 'student-token-2',
+            'moodle_user' => ['id' => 22, 'name' => 'Mahasiswa Aktif', 'moodle_username' => 'student-2'],
+        ])->get(route('courses.achievements', ['courseId' => 7]));
+
+        $response
+            ->assertOk()
+            ->assertSeeInOrder(['Mahasiswa Seratus Poin', '100'])
+            ->assertSee('Anda');
+
+        $this->assertDatabaseCount('gamification_activity_completions', 12);
+    }
+
     protected function withStudentSession(): static
     {
         return $this->withSession([
@@ -91,23 +138,27 @@ class AchievementFlowTest extends TestCase
         ]);
     }
 
-    protected function courseContents(): array
+    protected function courseContents(int $total = 4): array
     {
+        $modules = [];
+        foreach (range(1, $total) as $moduleId) {
+            $modules[] = [
+                'id' => $moduleId,
+                'modname' => $moduleId % 3 === 1 ? 'resource' : ($moduleId % 3 === 2 ? 'assign' : 'quiz'),
+                'name' => 'Aktivitas '.$moduleId,
+            ];
+        }
+
         return [[
             'name' => 'Topik 1',
-            'modules' => [
-                ['id' => 1, 'modname' => 'resource', 'name' => 'Materi 1'],
-                ['id' => 2, 'modname' => 'assign', 'name' => 'Tugas 1'],
-                ['id' => 3, 'modname' => 'quiz', 'name' => 'Kuis 1'],
-                ['id' => 4, 'modname' => 'resource', 'name' => 'Materi 2'],
-            ],
+            'modules' => $modules,
         ]];
     }
 
-    protected function completionStatuses(int $completed): array
+    protected function completionStatuses(int $completed, int $total = 4): array
     {
         $statuses = [];
-        for ($index = 1; $index <= 4; $index++) {
+        for ($index = 1; $index <= $total; $index++) {
             $statuses[] = [
                 'cmid' => $index,
                 'state' => $index <= $completed ? 1 : 0,

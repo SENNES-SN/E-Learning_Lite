@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GamificationCompletionStore;
 use App\Services\GamificationService;
 use App\Services\MoodleService;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class LoginController extends Controller
     public function __construct(
         protected MoodleService $moodleService,
         protected GamificationService $gamificationService,
+        protected ?GamificationCompletionStore $gamificationCompletionStore = null,
     ) {}
 
     public function showLoginForm()
@@ -374,7 +376,11 @@ class LoginController extends Controller
             $achievementError = 'Pencapaian belum dapat dimuat. Silakan coba lagi beberapa saat.';
         }
 
-        $leaderboard = $this->achievementLeaderboard($courseId, is_array($courseProgress) ? $courseProgress : []);
+        $leaderboard = $this->achievementLeaderboard(
+            $courseId,
+            is_array($courseProgress) ? $courseProgress : [],
+            $contents,
+        );
         $statuses = is_array($courseProgress['statuses'] ?? null) ? $courseProgress['statuses'] : [];
         if ($statuses === [] && (int) ($courseProgress['total'] ?? 0) > 0) {
             $completed = max(0, (int) ($courseProgress['completed'] ?? 0));
@@ -1770,6 +1776,7 @@ class LoginController extends Controller
                 // gunakan completion Moodle seperti biasa.
             }
             $statuses = $this->withLocalCompletionOverrides($courseId, $statuses);
+            $this->completionStore()->rememberCompletedStatuses($currentUserId, $courseId, $statuses);
             $total = is_array($statuses) ? count($statuses) : 0;
             $completed = 0;
 
@@ -1842,7 +1849,7 @@ class LoginController extends Controller
      * @param  array<string, mixed>  $currentProgress
      * @return array{rows: array<int, array<string, mixed>>, current_rank: int|null, total_students: int, complete: bool, message: string|null}
      */
-    protected function achievementLeaderboard(int $courseId, array $currentProgress): array
+    protected function achievementLeaderboard(int $courseId, array $currentProgress, mixed $contents = null): array
     {
         $sessionUser = session('moodle_user') ?? [];
         $currentUserId = (int) ($sessionUser['id'] ?? 0);
@@ -1881,21 +1888,32 @@ class LoginController extends Controller
             }
 
             if ($userId === $currentUserId) {
-                $progress = $currentProgress;
+                $statuses = is_array($currentProgress['statuses'] ?? null)
+                    ? $currentProgress['statuses']
+                    : [];
+                $statuses = $this->withCourseActivityStatuses($contents, $statuses);
+                $statuses = $this->withLocalCompletionOverrides($courseId, $statuses, $userId);
+                $progress = $statuses !== []
+                    ? $this->gamificationService->summary($statuses)
+                    : $currentProgress;
             } else {
+                $statuses = [];
                 try {
                     $completion = $this->activeMoodleService()->getActivityCompletionStatus($courseId, $userId);
                     $statuses = is_array($completion) && is_array($completion['statuses'] ?? null)
                         ? $completion['statuses']
                         : [];
-                    $progress = $this->gamificationService->summary($statuses);
                 } catch (\Throwable) {
                     $complete = false;
                     $message = 'Sebagian data leaderboard belum tersedia.';
-
-                    continue;
                 }
+
+                $statuses = $this->withCourseActivityStatuses($contents, $statuses);
+                $statuses = $this->withLocalCompletionOverrides($courseId, $statuses, $userId);
+                $progress = $this->gamificationService->summary($statuses);
             }
+
+            $this->completionStore()->rememberCompletedStatuses($userId, $courseId, $statuses);
 
             $rows[] = [
                 'id' => $userId,
@@ -2654,9 +2672,9 @@ class LoginController extends Controller
         return 'activity_completion_overrides.' . $userId . '.' . $courseId . '.' . $moduleId;
     }
 
-    protected function localActivityCompletionCacheKey(int $courseId): string
+    protected function localActivityCompletionCacheKey(int $courseId, ?int $userId = null): string
     {
-        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        $userId ??= (int) ((session('moodle_user') ?? [])['id'] ?? 0);
 
         return 'local_activity_completions:v1:' . $userId . ':' . $courseId;
     }
@@ -2664,19 +2682,38 @@ class LoginController extends Controller
     /**
      * @return array<int|string, mixed>
      */
-    protected function localActivityCompletionOverrides(int $courseId): array
+    protected function localActivityCompletionOverrides(int $courseId, ?int $userId = null): array
     {
-        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        $userId ??= $currentUserId;
         if ($userId <= 0 || $courseId <= 0) {
             return [];
         }
 
-        $cached = Cache::get($this->localActivityCompletionCacheKey($courseId), []);
-        $sessionOverrides = session('activity_completion_overrides.' . $userId . '.' . $courseId, []);
-
-        return array_replace(
+        $persisted = $this->completionStore()->completionsFor($userId, $courseId);
+        $cached = Cache::get($this->localActivityCompletionCacheKey($courseId, $userId), []);
+        $sessionOverrides = $userId === $currentUserId
+            ? session('activity_completion_overrides.' . $userId . '.' . $courseId, [])
+            : [];
+        $legacyOverrides = array_replace(
             is_array($cached) ? $cached : [],
             is_array($sessionOverrides) ? $sessionOverrides : [],
+        );
+
+        foreach ($legacyOverrides as $moduleId => $completedAt) {
+            if ($completedAt) {
+                $this->completionStore()->remember(
+                    $userId,
+                    $courseId,
+                    (int) $moduleId,
+                    is_numeric($completedAt) ? (int) $completedAt : null,
+                );
+            }
+        }
+
+        return array_replace(
+            $legacyOverrides,
+            $persisted,
         );
     }
 
@@ -2693,7 +2730,8 @@ class LoginController extends Controller
             ? (int) $overrides[$moduleId]
             : $completedAt;
 
-        Cache::forever($this->localActivityCompletionCacheKey($courseId), $overrides);
+        $this->completionStore()->remember($userId, $courseId, $moduleId, $overrides[$moduleId]);
+        Cache::forever($this->localActivityCompletionCacheKey($courseId, $userId), $overrides);
         session()->put($this->activityCompletionOverrideKey($courseId, $moduleId), $overrides[$moduleId]);
     }
 
@@ -2701,9 +2739,13 @@ class LoginController extends Controller
      * @param  array<int, mixed>  $statuses
      * @return array<int, mixed>
      */
-    protected function withLocalCompletionOverrides(int $courseId, array $statuses): array
+    protected function withLocalCompletionOverrides(
+        int $courseId,
+        array $statuses,
+        ?int $userId = null
+    ): array
     {
-        $overrides = $this->localActivityCompletionOverrides($courseId);
+        $overrides = $this->localActivityCompletionOverrides($courseId, $userId);
         if (! is_array($overrides) || $overrides === []) {
             return $statuses;
         }
@@ -2721,6 +2763,11 @@ class LoginController extends Controller
         }
 
         return $statuses;
+    }
+
+    protected function completionStore(): GamificationCompletionStore
+    {
+        return $this->gamificationCompletionStore ??= app(GamificationCompletionStore::class);
     }
 
     /**

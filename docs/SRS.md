@@ -1,9 +1,9 @@
 # Software Requirements Specification (SRS)
 # E-Learning Lite Berbasis Gamifikasi
 
-**Versi Dokumen:** 1.5
+**Versi Dokumen:** 1.6
 **Status:** Draft revisi pengalaman UI mahasiswa
-**Catatan:** Dokumen ini menetapkan Mahasiswa sebagai satu-satunya aktor E-Learning Lite. Sistem merupakan antarmuka alternatif yang lebih sederhana untuk E-Learning UAD/Moodle dengan tambahan feedback gamifikasi. Sistem menggunakan akun E-Learning UAD/Moodle melalui Moodle Web Service untuk mengakses data dan aktivitas pembelajaran mahasiswa, serta tidak menjadikan penyimpanan lokal sebagai sumber data utama.
+**Catatan:** Dokumen ini menetapkan Mahasiswa sebagai satu-satunya aktor E-Learning Lite. Sistem merupakan antarmuka alternatif yang lebih sederhana untuk E-Learning UAD/Moodle dengan tambahan feedback gamifikasi. Sistem menggunakan akun E-Learning UAD/Moodle melalui Moodle Web Service untuk mengakses data dan aktivitas pembelajaran mahasiswa. Data akademik utama tetap bersumber dari Moodle, sedangkan completion gamifikasi E-Learning Lite disimpan secara lokal agar poin dan leaderboard dapat dibaca lintas akun.
 
 ---
 
@@ -17,6 +17,7 @@
 | Penyusun SRS | 18 Agustus 2026 | Revisi ruang lingkup sistem sehingga Mahasiswa menjadi satu-satunya aktor; fitur Dosen dan kemampuan pengelolaan khusus Dosen dikeluarkan dari ruang lingkup | 1.3 |
 | Penyusun SRS | 18 Agustus 2026 | Revisi copy UI agar ramah mahasiswa, menyembunyikan field teknis seperti shortname/ID, dan menghapus navigasi fallback ke E-Learning UAD/Moodle | 1.4 |
 | Penyusun SRS | 19 Agustus 2026 | Menambahkan fallback status penyelesaian khusus E-Learning Lite untuk materi/resource yang tidak menyediakan activity completion Moodle | 1.5 |
+| Penyusun SRS | 25 Agustus 2026 | Menetapkan penyimpanan completion gamifikasi lintas akun di SQLite, aturan tetap 10 poin per aktivitas, dan menghapus bonus poin | 1.6 |
 
 ---
 
@@ -59,7 +60,7 @@ Fokus sistem adalah:
 1. Menyediakan antarmuka yang lebih ringan dan mudah dipahami untuk mengakses data pembelajaran dari E-Learning UAD.
 2. Menambahkan elemen gamifikasi untuk meningkatkan motivasi mahasiswa.
 3. Menyediakan antarmuka bagi mahasiswa untuk mengakses dan mengikuti aktivitas pembelajaran tertentu melalui Moodle Web Service.
-4. Menghitung feedback gamifikasi dari data aktivitas pembelajaran yang diperoleh melalui Moodle Web Service. Penyimpanan teknis seperti session atau cache sementara dapat digunakan apabila diperlukan, tetapi tidak menjadi sumber data utama sistem.
+4. Menghitung feedback gamifikasi dari aktivitas pembelajaran dan menyimpan completion gamifikasi E-Learning Lite secara lokal untuk menjamin konsistensi poin serta leaderboard lintas akun, tanpa menjadikannya sebagai data akademik Moodle.
 
 ## 1.2 Document Conventions
 
@@ -106,8 +107,8 @@ Ruang lingkup sistem:
 3. Menampilkan informasi pembelajaran mahasiswa seperti materi, kuis/tugas, nilai, progress, dan pencapaian apabila data tersebut tersedia melalui Moodle Web Service.
 4. Menyediakan antarmuka bagi mahasiswa untuk mengakses materi/resource, mengikuti kuis, mengumpulkan tugas, serta melihat nilai, progress, dan pencapaian yang tersedia dari Moodle sesuai layanan Moodle Web Service.
 5. Menyediakan dashboard ringkas untuk Mahasiswa.
-6. Menambahkan feedback gamifikasi berupa poin, badge/lencana, leaderboard, progress bar, dan reward poin tambahan berdasarkan aktivitas pembelajaran yang dapat dibaca dari E-Learning UAD/Moodle.
-7. Menggunakan session atau cache untuk kebutuhan teknis prototype, termasuk menyimpan status penyelesaian khusus E-Learning Lite ketika materi/resource tidak menyediakan activity completion Moodle; status ini bukan data akademik Moodle.
+6. Menambahkan feedback gamifikasi berupa poin, badge/lencana, leaderboard, dan progress bar berdasarkan aktivitas pembelajaran, dengan bobot tetap 10 poin untuk setiap aktivitas yang selesai dan tanpa bonus poin.
+7. Menggunakan SQLite untuk menyimpan completion gamifikasi E-Learning Lite serta file session/cache untuk kebutuhan teknis prototype; completion lokal bukan data akademik Moodle.
 
 Di luar ruang lingkup utama:
 
@@ -138,7 +139,7 @@ Posisi sistem:
 1. **E-Learning UAD/Moodle** menjadi sumber data utama untuk kursus, peserta, materi, kuis/tugas, nilai, dan progress akademik.
 2. **Moodle Web Service** digunakan untuk autentikasi akun Moodle, pengambilan data, dan pengiriman data pembelajaran sesuai fitur yang tersedia.
 3. **E-Learning Lite** menyediakan tampilan pembelajaran mahasiswa yang lebih sederhana, dashboard ringkas, pencarian, akses aktivitas pembelajaran, progress, pencapaian, nilai, notifikasi, dan feedback gamifikasi.
-4. **Penyimpanan teknis E-Learning Lite**, apabila digunakan, hanya bersifat pendukung seperti session atau cache sementara. Penyimpanan tersebut tidak menjadi sumber data utama untuk data akademik maupun data gamifikasi pada ruang lingkup prototype.
+4. **Penyimpanan lokal E-Learning Lite** digunakan untuk session, cache, dan completion gamifikasi per mahasiswa, mata kuliah, serta aktivitas. Penyimpanan ini menjadi sumber perhitungan poin dan leaderboard E-Learning Lite, tetapi tidak menggantikan data akademik maupun completion resmi Moodle.
 
 Integrasi dengan Moodle dilakukan melalui Moodle Web Service untuk membaca data pembelajaran dan mengirim hasil aktivitas mahasiswa sesuai hak akses, konfigurasi E-Learning UAD/Moodle, dan layanan Moodle Web Service yang tersedia. Data akademik utama tetap berada pada E-Learning UAD/Moodle, sedangkan E-Learning Lite berperan sebagai antarmuka yang lebih sederhana bagi mahasiswa untuk mengakses pembelajaran.
 
@@ -157,7 +158,7 @@ Fitur utama sistem:
 9. Menampilkan nilai, progress, dan pencapaian mahasiswa apabila data tersedia dari Moodle Web Service.
 10. Menyediakan pencarian/filter data kursus dan aktivitas pembelajaran.
 11. Menampilkan progress belajar dalam bentuk yang lebih mudah dibaca.
-12. Menyediakan feedback gamifikasi berupa poin, badge/lencana, leaderboard per kursus, dan reward poin tambahan berdasarkan data aktivitas yang dapat dibaca dari E-Learning UAD/Moodle.
+12. Menyediakan feedback gamifikasi berupa 10 poin untuk setiap aktivitas yang selesai, badge/lencana, dan leaderboard per kursus tanpa bonus poin.
 13. Menampilkan pengingat deadline pada dashboard berdasarkan data Moodle apabila tersedia.
 14. Menampilkan pesan kegagalan jika Moodle Web Service tidak dapat diakses atau tidak mendukung aksi tertentu.
 15. Menampilkan daftar notifikasi pembelajaran apabila data tersedia dari Moodle.
@@ -175,7 +176,7 @@ Karakteristik Mahasiswa:
 - Memiliki akses ke kursus yang diikuti pada E-Learning UAD.
 - Membutuhkan tampilan pembelajaran yang sederhana dan mudah dipahami.
 - Membutuhkan informasi progress, deadline, nilai, dan aktivitas pembelajaran.
-- Mendapatkan poin, badge, reward, dan posisi leaderboard berdasarkan aktivitas pembelajaran.
+- Mendapatkan poin, badge, dan posisi leaderboard berdasarkan aktivitas pembelajaran.
 
 ## 2.4 Operating Environment
 
@@ -195,7 +196,7 @@ Lingkungan operasional sistem:
    - Blade sebagai template antarmuka.
    - Vite sebagai build tool.
    - Tailwind CSS v4 untuk styling antarmuka.
-   - MySQL melalui Docker hanya apabila diperlukan untuk kebutuhan teknis prototype seperti session atau cache sementara.
+   - SQLite untuk completion gamifikasi E-Learning Lite serta file untuk session/cache pada setup default.
    - Moodle Web Service untuk autentikasi dan pengambilan data dari E-Learning UAD.
 7. Sistem membutuhkan koneksi internet untuk melakukan autentikasi melalui E-Learning UAD/Moodle dan mengambil data pembelajaran melalui Moodle Web Service.
 
@@ -210,7 +211,7 @@ Batasan desain dan implementasi:
 5. Integrasi Moodle digunakan untuk membaca data pembelajaran dan mengirim hasil aktivitas sesuai hak akses mahasiswa, konfigurasi E-Learning UAD/Moodle, dan layanan Moodle Web Service yang tersedia.
 6. Service Moodle yang digunakan saat ini adalah `moodle-mobile-app`, sehingga pembuatan kursus baru dari E-Learning Lite tidak didukung.
 7. Sistem tidak menyimpan data akademik utama sebagai sumber data lokal baru.
-8. Penyimpanan teknis seperti session atau cache sementara dapat digunakan apabila diperlukan, tetapi tidak menjadi sumber data utama sistem.
+8. SQLite digunakan untuk menyimpan completion gamifikasi E-Learning Lite secara unik per mahasiswa, mata kuliah, dan aktivitas agar poin dapat dibaca lintas session dan lintas akun.
 9. Data akademik utama tetap tersimpan pada E-Learning UAD/Moodle, sedangkan E-Learning Lite menjadi antarmuka bagi mahasiswa untuk mengakses data dan mengikuti aktivitas sesuai fitur integrasi.
 10. Sistem dikembangkan sebagai prototype/skripsi.
 11. Bahasa antarmuka sistem menggunakan Bahasa Indonesia.
@@ -232,11 +233,11 @@ Asumsi dan dependensi:
 2. Moodle Web Service tersedia dan dapat diakses oleh E-Learning Lite.
 3. Data course, materi, kuis/tugas, nilai, progress, dan pencapaian mahasiswa tersedia melalui Moodle Web Service sesuai fitur integrasi.
 4. Identitas mahasiswa dan akses kursus dapat ditentukan dari data Moodle yang tersedia.
-5. Ketersediaan data aktivitas untuk gamifikasi bergantung pada layanan Moodle Web Service yang dapat diakses.
+5. Data peserta dan struktur aktivitas bergantung pada Moodle Web Service; completion gamifikasi yang sudah tercatat di E-Learning Lite tetap dapat digunakan saat completion mahasiswa lain tidak dapat dibaca dari Moodle.
 6. Ketersediaan akses materi/resource, kuis, tugas, section/topik, dan informasi dasar course bergantung pada layanan Moodle Web Service yang tersedia.
 7. Service `moodle-mobile-app` tidak menyediakan fitur pembuatan kursus, sehingga kursus baru dibuat melalui E-Learning UAD/Moodle dan kemudian dapat ditampilkan di E-Learning Lite.
 8. Jika Moodle Web Service bermasalah atau tidak mendukung aksi akademik, sistem menampilkan pesan kegagalan dan tidak menyimpan data akademik tersebut secara lokal sebagai pengganti. Khusus materi/resource tanpa activity completion Moodle, sistem dapat menyimpan status penyelesaian antarmuka E-Learning Lite tanpa menganggapnya sebagai completion akademik Moodle.
-9. Aturan detail poin, badge, reward, dan leaderboard dapat disesuaikan pada tahap implementasi.
+9. Setiap aktivitas yang selesai bernilai 10 poin, tidak ada bonus poin, dan satu aktivitas hanya boleh dihitung satu kali untuk setiap mahasiswa pada mata kuliah yang sama.
 
 ---
 
@@ -337,7 +338,7 @@ Fitur ini memungkinkan mahasiswa melihat detail course yang berasal dari Moodle,
 
 ### 3.5.1 Description and Priority
 
-Fitur ini membantu mahasiswa melihat ringkasan aktivitas, progress, pencapaian, dan posisinya pada leaderboard berdasarkan data Moodle yang tersedia. Fitur ini memiliki prioritas **Medium**.
+Fitur ini membantu mahasiswa melihat ringkasan aktivitas, progress, pencapaian, dan posisinya pada leaderboard. Daftar peserta tetap berasal dari Moodle, sedangkan poin leaderboard dibaca dari completion gamifikasi E-Learning Lite yang tersimpan per mata kuliah. Fitur ini memiliki prioritas **Medium**.
 
 ### 3.5.2 Functional Requirements
 
@@ -346,34 +347,35 @@ Fitur ini membantu mahasiswa melihat ringkasan aktivitas, progress, pencapaian, 
 | REQ-028 | Sistem harus menampilkan ringkasan aktivitas pembelajaran mahasiswa apabila data tersedia. | Medium |
 | REQ-029 | Sistem harus menampilkan progress mahasiswa jika data progress tersedia. | Medium |
 | REQ-030 | Sistem harus menampilkan pencapaian mahasiswa berdasarkan aktivitas pembelajaran yang tersedia. | Medium |
-| REQ-031 | Sistem harus menampilkan leaderboard gamifikasi per course apabila data tersedia. | Medium |
+| REQ-031 | Sistem harus menampilkan leaderboard gamifikasi per course untuk seluruh mahasiswa terdaftar yang dapat dibaca dari Moodle, termasuk poin E-Learning Lite yang telah tersimpan lintas akun. | Medium |
 | REQ-032 | Sistem tidak boleh menampilkan detail nilai pribadi mahasiswa kepada mahasiswa lain. | High |
 
 ## 3.6 Gamifikasi Pembelajaran
 
 ### 3.6.1 Description and Priority
 
-Fitur ini menyediakan feedback gamifikasi untuk meningkatkan motivasi mahasiswa. Gamifikasi terutama dihitung dari data aktivitas Moodle yang dapat diakses melalui Moodle Web Service. Untuk materi/resource yang tidak menyediakan activity completion, sistem dapat menggunakan status penyelesaian khusus E-Learning Lite sebagai fallback teknis. Fallback tersebut tidak mengubah data akademik atau completion Moodle. Fitur ini memiliki prioritas **Medium**.
+Fitur ini menyediakan feedback gamifikasi untuk meningkatkan motivasi mahasiswa. Setiap aktivitas yang selesai bernilai tetap 10 poin dan tidak ada bonus poin. Completion gamifikasi dicatat secara lokal per mahasiswa, mata kuliah, dan aktivitas agar satu aktivitas tidak dihitung ganda serta leaderboard dapat dibaca lintas akun. Pencatatan tersebut tidak mengubah data akademik atau completion resmi Moodle. Fitur ini memiliki prioritas **Medium**.
 
 ### 3.6.2 Stimulus/Response Sequences
 
 1. Mahasiswa mengakses atau menyelesaikan aktivitas pembelajaran pada course.
-2. Sistem membaca data aktivitas/progress dari Moodle apabila tersedia; untuk materi/resource tanpa activity completion, sistem membaca status penyelesaian khusus E-Learning Lite.
-3. Sistem menghitung poin berdasarkan aturan gamifikasi.
+2. Sistem membaca data aktivitas/progress dari Moodle apabila tersedia dan menggabungkannya dengan completion gamifikasi E-Learning Lite.
+3. Sistem mencatat completion secara unik dan memberikan 10 poin untuk aktivitas yang baru selesai.
 4. Sistem memberikan badge/lencana jika syarat terpenuhi.
 5. Sistem memperbarui leaderboard per course.
-6. Mahasiswa melihat poin, badge, progress, reward, dan posisi leaderboard.
+6. Mahasiswa melihat poin, badge, progress, dan posisi leaderboard.
 
 ### 3.6.3 Functional Requirements
 
 | ID | Requirement | Priority |
 |---|---|---|
-| REQ-033 | Sistem harus menyediakan poin gamifikasi berdasarkan aktivitas pembelajaran yang dapat dibaca dari Moodle Web Service atau status penyelesaian khusus E-Learning Lite untuk materi/resource tanpa activity completion Moodle. | Medium |
+| REQ-033 | Sistem harus memberikan tepat 10 poin untuk setiap aktivitas pembelajaran yang selesai dan tercatat pada E-Learning Lite. | Medium |
 | REQ-034 | Sistem harus menyediakan badge/lencana berdasarkan pencapaian tertentu. | Medium |
-| REQ-035 | Sistem harus menyediakan leaderboard per course. | Medium |
+| REQ-035 | Sistem harus menyediakan leaderboard per course berdasarkan akumulasi completion aktivitas unik seluruh mahasiswa yang telah tercatat pada E-Learning Lite. | Medium |
 | REQ-036 | Sistem harus menyediakan progress bar pembelajaran. | Medium |
-| REQ-037 | Sistem harus menyediakan reward berupa poin tambahan, bukan hadiah fisik. | Low |
-| REQ-038 | Sistem harus menghitung dan menampilkan feedback gamifikasi tanpa mengubah data akademik utama di Moodle; fallback lokal harus dibedakan secara internal dari completion Moodle. | High |
+| REQ-037 | Sistem tidak memberikan bonus poin; seluruh aktivitas yang selesai memiliki bobot yang sama, yaitu 10 poin. | Medium |
+| REQ-038 | Sistem harus menyimpan completion gamifikasi secara lokal tanpa mengubah atau mengklaimnya sebagai completion akademik Moodle. | High |
+| REQ-038A | Sistem harus mencegah satu aktivitas yang sama memberikan poin lebih dari satu kali kepada mahasiswa pada course yang sama. | High |
 | REQ-039 | Leaderboard tidak boleh menampilkan detail nilai pribadi mahasiswa lain. | High |
 | REQ-040 | Sistem harus memungkinkan aturan gamifikasi disesuaikan pada tahap implementasi. | Low |
 
@@ -470,14 +472,15 @@ Moodle Web Service digunakan untuk:
 
 Data akademik utama tetap berada pada E-Learning UAD/Moodle. E-Learning Lite menyediakan antarmuka bagi mahasiswa untuk mengakses data dan mengikuti aktivitas pembelajaran sesuai kebutuhan sistem.
 
-### 4.3.2 Penyimpanan Teknis E-Learning Lite
+### 4.3.2 Penyimpanan Lokal E-Learning Lite
 
-Penyimpanan teknis, apabila digunakan, hanya digunakan untuk:
+Penyimpanan lokal digunakan untuk:
 
-1. Session atau cache untuk mendukung alur prototype dan status penyelesaian khusus E-Learning Lite bagi materi/resource tanpa activity completion Moodle.
-2. Log teknis atau konfigurasi aplikasi apabila diperlukan.
+1. Session atau cache untuk mendukung alur prototype.
+2. Completion gamifikasi E-Learning Lite yang diidentifikasi secara unik berdasarkan mahasiswa Moodle, mata kuliah, dan aktivitas.
+3. Log teknis atau konfigurasi aplikasi apabila diperlukan.
 
-Penyimpanan teknis tidak menggantikan data akademik Moodle. Status fallback hanya berlaku pada E-Learning Lite dan tidak boleh ditampilkan atau dikirim sebagai completion Moodle.
+Completion lokal digunakan untuk menghitung poin dan leaderboard lintas akun. Penyimpanan tersebut tidak menggantikan data akademik Moodle dan tidak boleh ditampilkan atau dikirim sebagai completion resmi Moodle.
 
 ### 4.3.3 Framework dan Library
 
@@ -488,7 +491,7 @@ Sistem dikembangkan menggunakan:
 3. Vite.
 4. Tailwind CSS v4.
 5. Moodle Web Service.
-6. MySQL melalui Docker hanya jika dibutuhkan untuk kebutuhan teknis prototype seperti session atau cache sementara.
+6. SQLite untuk completion gamifikasi E-Learning Lite serta file untuk session/cache pada setup default.
 
 ## 4.4 Communications Interfaces
 
@@ -543,7 +546,7 @@ Kebutuhan komunikasi sistem:
 | ID | Requirement | Priority |
 |---|---|---|
 | NFR-014 | Sistem harus tetap dapat menampilkan halaman dengan pesan yang jelas ketika Moodle Web Service gagal. | Medium |
-| NFR-015 | Sistem harus menjaga agar feedback gamifikasi dihitung dari data aktivitas Moodle yang tersedia atau fallback penyelesaian materi khusus E-Learning Lite ketika Moodle tidak menyediakan completion. | Medium |
+| NFR-015 | Sistem harus menjaga agar poin gamifikasi dihitung secara konsisten sebesar 10 poin per completion aktivitas unik yang tersimpan di E-Learning Lite. | Medium |
 
 ### 5.4.3 Portability
 
@@ -568,8 +571,9 @@ Kebutuhan komunikasi sistem:
 
 1. Data akademik utama tetap tersimpan pada E-Learning UAD/Moodle.
 2. E-Learning Lite dapat mengakses data akademik utama dan mengirim hasil aktivitas mahasiswa melalui Moodle Web Service sesuai hak akses mahasiswa, konfigurasi E-Learning UAD/Moodle, dan layanan yang tersedia.
-3. Penyimpanan teknis, apabila digunakan, hanya untuk kebutuhan pendukung seperti session, cache, dan status penyelesaian khusus E-Learning Lite bagi materi tanpa activity completion Moodle.
-4. Feedback gamifikasi dihitung dari data aktivitas yang tersedia melalui Moodle Web Service atau fallback penyelesaian materi tersebut dan tidak menjadi sumber data akademik utama.
+3. SQLite menyimpan completion gamifikasi dengan kombinasi unik mahasiswa Moodle, mata kuliah, dan aktivitas.
+4. Setiap completion aktivitas unik bernilai 10 poin dan tidak ada bonus poin.
+5. Penyimpanan gamifikasi lokal menjadi sumber poin dan leaderboard E-Learning Lite, tetapi tidak menjadi sumber data akademik maupun completion resmi Moodle.
 
 ## 6.2 Language Requirements
 
@@ -588,7 +592,7 @@ Sistem dapat mendukung upload file melalui fitur pembelajaran yang terintegrasi 
 
 ## 6.5 Backup Requirements
 
-Backup data akademik utama mengikuti kebijakan E-Learning UAD/Moodle. Untuk ruang lingkup prototype, penyimpanan teknis E-Learning Lite seperti session atau cache sementara tidak menjadi sumber data utama sistem.
+Backup data akademik utama mengikuti kebijakan E-Learning UAD/Moodle. Untuk ruang lingkup prototype, file SQLite perlu disertakan dalam backup apabila completion gamifikasi, poin, dan leaderboard E-Learning Lite perlu dipertahankan.
 
 ## 6.6 Limitation of Scope
 
@@ -616,14 +620,13 @@ Batasan ruang lingkup:
 | Data Akademik Utama | Data course, peserta, materi, kuis, tugas, nilai, dosen, mahasiswa, dan progress yang berasal dari Moodle. |
 | Resource/Materi | Konten pembelajaran pada course Moodle seperti file, dokumen, link, video, atau bahan ajar lain yang tersedia melalui integrasi. |
 | Aktivitas Pembelajaran | Kuis, tugas, atau aktivitas Moodle lain yang dapat diakses atau dikelola melalui integrasi. |
-| Feedback Gamifikasi | Informasi poin, badge/lencana, leaderboard, reward, dan progress yang dihitung dari data aktivitas Moodle untuk memberi umpan balik belajar. |
+| Feedback Gamifikasi | Informasi poin, badge/lencana, leaderboard, dan progress yang dihitung dari completion aktivitas untuk memberi umpan balik belajar. |
 | Mahasiswa | Pengguna yang mengikuti course pada E-Learning UAD. |
 | Course/Kursus | Mata kuliah atau kelas pembelajaran pada Moodle. |
-| Gamifikasi | Penggunaan elemen permainan seperti poin, badge, leaderboard, progress bar, dan reward untuk meningkatkan motivasi belajar. |
-| Poin | Nilai gamifikasi yang diperoleh mahasiswa dari aktivitas pembelajaran. |
+| Gamifikasi | Penggunaan elemen permainan seperti poin, badge, leaderboard, dan progress bar untuk meningkatkan motivasi belajar. |
+| Poin | Nilai gamifikasi sebesar 10 poin yang diperoleh mahasiswa untuk setiap aktivitas unik yang selesai. |
 | Badge/Lencana | Penghargaan visual berdasarkan pencapaian tertentu. |
 | Leaderboard | Peringkat mahasiswa dalam course berdasarkan aturan gamifikasi. |
-| Reward | Poin tambahan atau bentuk penghargaan non-fisik dalam gamifikasi. |
 | Prototype | Sistem tahap awal untuk kebutuhan skripsi dan validasi rancangan. |
 
 ---
@@ -639,8 +642,8 @@ Bagian Use Case Diagram tidak dicantumkan dalam dokumen ini karena dibuat secara
 | ID | Issue | Status |
 |---|---|---|
 | ISS-001 | Ketersediaan fitur integrasi bergantung pada layanan Moodle Web Service yang tersedia dari E-Learning UAD. | Open |
-| ISS-002 | Ketersediaan data aktivitas untuk gamifikasi bergantung pada data progress/aktivitas yang dapat diakses melalui Moodle Web Service. | Open |
+| ISS-002 | Daftar peserta dan struktur aktivitas untuk gamifikasi bergantung pada data yang dapat diakses melalui Moodle Web Service. | Open |
 | ISS-003 | Struktur data pembelajaran dari Moodle perlu disesuaikan dengan kebutuhan tampilan dan alur E-Learning Lite. | Open |
 | ISS-004 | Pembuatan kursus baru dari E-Learning Lite tidak tersedia karena service `moodle-mobile-app` tidak menyediakan fitur tersebut. | Open |
-| ISS-005 | Aturan detail poin, badge, reward, dan leaderboard masih dapat disesuaikan saat implementasi. | Open |
+| ISS-005 | Aturan poin ditetapkan 10 poin per aktivitas tanpa bonus; aturan badge masih dapat disesuaikan pada tahap implementasi. | Closed |
 | ISS-006 | Sistem masih dalam tahap prototype lokal dan belum ditujukan sebagai sistem produksi kampus penuh. | Open |
