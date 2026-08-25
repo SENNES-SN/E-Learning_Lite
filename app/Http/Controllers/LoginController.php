@@ -434,6 +434,7 @@ class LoginController extends Controller
         $contentError = null;
         $contents = null;
         $courseProgress = null;
+        $materialDescription = '';
         $assignmentAnswer = null;
         $assignmentDescription = '';
         $assignmentInstructions = '';
@@ -458,6 +459,25 @@ class LoginController extends Controller
 
                 if ($moduleType === 'quiz') {
                     $quizzes = $this->activeMoodleService()->getQuizzes($courseId);
+                }
+
+                if (in_array($moduleType, ['resource', 'page', 'book', 'folder', 'url'], true)) {
+                    $materialDescription = $this->moodlePlainText($module['description'] ?? $module['intro'] ?? '');
+                }
+
+                if ($moduleType === 'resource') {
+                    try {
+                        $resource = $this->findResourceForModule(
+                            $this->activeMoodleService()->getResources($courseId),
+                            $module,
+                        );
+                        $resourceDescription = $this->moodlePlainText($resource['intro'] ?? '');
+                        if ($resourceDescription !== '') {
+                            $materialDescription = $resourceDescription;
+                        }
+                    } catch (\Throwable) {
+                        // Keep the course-content description as a fallback.
+                    }
                 }
 
                 $courseProgress = $this->currentUserCourseProgress(
@@ -525,6 +545,7 @@ class LoginController extends Controller
             'course' => $course,
             'module' => $module,
             'section' => $section,
+            'materialDescription' => $materialDescription,
             'assignment' => $assignment,
             'quiz' => $quiz,
             'quizAttempts' => $quizAttempts,
@@ -2913,6 +2934,29 @@ class LoginController extends Controller
         }
 
         return $attachments;
+    }
+
+    protected function findResourceForModule(mixed $resourcesResponse, array $module): ?array
+    {
+        if (! is_array($resourcesResponse)) {
+            return null;
+        }
+
+        $moduleId = (int) ($module['id'] ?? 0);
+        $instanceId = (int) ($module['instance'] ?? 0);
+
+        foreach (($resourcesResponse['resources'] ?? []) as $resource) {
+            if (! is_array($resource)) {
+                continue;
+            }
+
+            $resourceModuleId = (int) ($resource['coursemodule'] ?? $resource['cmid'] ?? 0);
+            if ($resourceModuleId === $moduleId || (int) ($resource['id'] ?? 0) === $instanceId) {
+                return $resource;
+            }
+        }
+
+        return null;
     }
 
     protected function findQuizForModule(mixed $quizzesResponse, array $module): ?array

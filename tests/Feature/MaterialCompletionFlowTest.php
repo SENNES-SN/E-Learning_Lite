@@ -32,9 +32,9 @@ class MaterialCompletionFlowTest extends TestCase
                     'name' => '08 Juni - 13 Juni',
                     'modules' => [[
                         'id' => 11,
+                        'instance' => 71,
                         'modname' => 'resource',
                         'name' => 'Pengenalan UI/UX Design',
-                        'description' => 'Konsep dasar antarmuka dan pengalaman pengguna.',
                         'contents' => [[
                             'filename' => 'Pengenalan_UIUX_Design.pdf',
                             'fileurl' => 'https://elearning.example.test/pluginfile.php/11/material.pdf',
@@ -43,6 +43,14 @@ class MaterialCompletionFlowTest extends TestCase
                     ]],
                 ],
             ]);
+        $service->shouldReceive('getResources')
+            ->once()
+            ->with(7)
+            ->andReturn(['resources' => [[
+                'id' => 71,
+                'coursemodule' => 11,
+                'intro' => '<p>Konsep dasar antarmuka dan pengalaman pengguna.</p><script>alert("xss")</script>',
+            ]]]);
         $service->shouldReceive('getActivityCompletionStatus')
             ->once()
             ->with(7, 21)
@@ -62,6 +70,8 @@ class MaterialCompletionFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Pengenalan UI/UX Design')
             ->assertSee('Belum Diselesaikan')
+            ->assertSee('Konsep dasar antarmuka dan pengalaman pengguna.')
+            ->assertDontSee('alert(&quot;xss&quot;)', false)
             ->assertSee('Pengenalan_UIUX_Design.pdf')
             ->assertSee('Baca Materi')
             ->assertSee(route('moodle.file.download'), false)

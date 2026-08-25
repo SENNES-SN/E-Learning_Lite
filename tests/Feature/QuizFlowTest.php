@@ -36,10 +36,16 @@ class QuizFlowTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertDontSee('quiz-access-icon', false)
+            ->assertSee('quiz-access-icon', false)
             ->assertSee('Quiz 1')
             ->assertSee('Belum Dikerjakan')
-            ->assertSee('Jumlah Soal')
+            ->assertSeeInOrder([
+                'Deskripsi',
+                'Kerjakan kuis berikut untuk menguji pemahaman kamu.',
+                'Jenis Quiz :',
+                'Pilihan Jawaban',
+                'Jumlah Soal :',
+            ])
             ->assertSee('Kerjakan Kuis')
             ->assertDontSee('Buka di Moodle');
     }

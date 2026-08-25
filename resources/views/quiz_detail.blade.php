@@ -70,23 +70,26 @@
                     @endif
 
                     <section class="quiz-access-card" aria-label="Jadwal akses kuis">
+                        <span class="quiz-access-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span>
                         <div><span>Waktu Akses</span><strong>{{ $formatTimestamp($timeOpen) }}</strong></div>
                         <div><span>Batas Akses</span><strong>{{ $formatTimestamp($timeClose) }}</strong></div>
                     </section>
 
                     <section class="quiz-information-card" aria-labelledby="quiz-description-title">
-                        <dl>
-                            <dt>Jenis Quiz</dt>
+                        <div class="quiz-description-panel">
+                            <h2 id="quiz-description-title">Deskripsi</h2>
+                            <p>{{ $description }}</p>
+                        </div>
+                        <dl class="quiz-metadata-list">
+                            <dt>Jenis Quiz :</dt>
                             <dd>Pilihan Jawaban</dd>
-                            <dt>Jumlah Soal</dt>
+                            <dt>Jumlah Soal :</dt>
                             <dd>{{ $questionCount > 0 ? $questionCount : 'Tersedia saat kuis dimulai' }}</dd>
-                            <dt>Durasi</dt>
+                            <dt>Durasi :</dt>
                             <dd>{{ $timeLimit > 0 ? max(1, (int) ceil($timeLimit / 60)).' Menit' : 'Tidak dibatasi' }}</dd>
-                            <dt>Poin</dt>
+                            <dt>Poin :</dt>
                             <dd>10 Poin</dd>
                         </dl>
-                        <h2 id="quiz-description-title">Deskripsi</h2>
-                        <p>{{ $description }}</p>
                     </section>
 
                     <div class="quiz-detail-actions">

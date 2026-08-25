@@ -262,6 +262,13 @@ class MoodleService
         ]);
     }
 
+    public function getResources(int $courseId): mixed
+    {
+        return $this->request('mod_resource_get_resources_by_courses', [
+            'courseids' => [$courseId],
+        ]);
+    }
+
     public function getCalendarActionEventsByCourses(array $courseIds): mixed
     {
         return $this->request('core_calendar_get_action_events_by_courses', [

@@ -91,6 +91,7 @@
 
                 @if ($pageMode === 'detail')
                     <section class="assignment-time-card" aria-label="Jadwal pengumpulan tugas">
+                        <span class="assignment-time-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span>
                         <div>
                             <span>Waktu Pengumpulan</span>
                             <strong>{{ $formatTimestamp($availableTimestamp) }}</strong>

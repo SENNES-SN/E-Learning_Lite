@@ -10,7 +10,7 @@
 <body class="student-shell-page final-material-page">
     @php
         $materialName = $module['name'] ?? 'Detail Materi';
-        $description = trim(strip_tags((string) ($module['description'] ?? $module['intro'] ?? '')));
+        $description = trim((string) ($materialDescription ?? ''));
         $description = $description !== '' ? $description : 'Materi ini belum memiliki deskripsi.';
         $completionStatuses = collect($courseProgress['statuses'] ?? [])
             ->filter(fn ($status) => is_array($status))

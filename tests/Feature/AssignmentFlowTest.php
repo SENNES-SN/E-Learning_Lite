@@ -46,7 +46,7 @@ class AssignmentFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Tugas 1')
             ->assertSee('Belum Dikumpulkan')
-            ->assertDontSee('assignment-time-icon', false)
+            ->assertSee('assignment-time-icon', false)
             ->assertSeeInOrder([
                 'Deskripsi Tugas',
                 'Penugasan ini bertujuan untuk menguji pemahaman mahasiswa.',

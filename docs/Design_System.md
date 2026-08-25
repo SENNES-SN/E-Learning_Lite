@@ -397,7 +397,7 @@ Class yang direkomendasikan:
 - Aksi `Baca Materi` diletakkan di sisi kanan pada desktop.
 - Pada modal pembaca materi, tombol `Kembali` menggunakan secondary soft blue, sedangkan tombol `Selesai` tetap menggunakan primary navy.
 - Setelah materi selesai, status berubah menjadi `Sudah Diselesaikan` dan tampil modal keberhasilan.
-- Pada mobile, gunakan ikon header 40 px dan judul 18 px; status ringkas berada sejajar dengan judul saat ruang cukup lalu membungkus secara natural untuk judul panjang. Lampiran memiliki tinggi minimum 72 px dan tombol aksi selebar konten.
+- Pada desktop, baris lampiran materi menggunakan ukuran ringkas yang sama dengan lampiran tugas, dengan tinggi minimum sekitar 76 px. Pada mobile, gunakan ikon header 40 px dan judul 18 px; status ringkas berada sejajar dengan judul saat ruang cukup lalu membungkus secara natural untuk judul panjang. Lampiran memiliki tinggi minimum 72 px dan tombol aksi selebar konten.
 
 Class yang direkomendasikan:
 
@@ -419,7 +419,7 @@ Class yang direkomendasikan:
 - Catatan opsional menggunakan textarea berukuran lebar.
 - Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan sebelum tombol kumpulkan.
 - Jika deadline terlewati, cegah pengumpulan dan tampilkan modal error waktu berakhir.
-- Pada mobile, gunakan judul aktivitas 16 px yang dapat membungkus dengan lega, hilangkan ikon jam dari kartu waktu, susun informasi waktunya secara vertikal, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
+- Pada mobile, gunakan judul aktivitas 16 px yang dapat membungkus dengan lega, hilangkan ikon jam dari kartu waktu, susun informasi waktu dan batas dalam dua kolom sejajar, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
 
 Class yang direkomendasikan:
 
@@ -432,6 +432,8 @@ Class yang direkomendasikan:
 
 ### 6.6 Pengerjaan Quiz
 
+- Pada detail awal desktop, kartu di bawah jadwal menggunakan dua kolom: deskripsi di kiri dan metadata `Jenis Quiz`, `Jumlah Soal`, `Durasi`, serta `Poin` di kanan dengan pemisah vertikal.
+- Pada mobile, kartu informasi tersebut menjadi satu kolom dengan deskripsi selalu tampil lebih dahulu, kemudian metadata di bawahnya.
 - Desktop memakai layout dua kolom dengan area soal fleksibel dan panel daftar soal sekitar `280–320px`; keseluruhan konten dibatasi sekitar `1360px` agar tidak terlalu melebar.
 - Ringkasan atas memuat waktu tersisa, nomor soal, dan skor maksimal dalam card putih ringkas dengan divider vertikal.
 - Pertanyaan berada dalam bordered card putih dengan radius `12px`, padding `24px`, dan shadow tipis.
@@ -442,7 +444,7 @@ Class yang direkomendasikan:
 - Semua nomor soal memakai tampilan netral tanpa membedakan status dijawab dan belum dijawab; soal yang sedang dibuka tetap diberi outline sebagai konteks navigasi.
 - Status respons tetap disimpan selama sesi tab untuk validasi penyelesaian, tetapi tidak mengubah warna nomor. Saat nomor atau tombol navigasi pengerjaan kuis sedang memuat, gunakan spinner putih agar tetap kontras pada desktop maupun mobile.
 - Setelah selesai, tampilkan modal sukses yang memuat skor, poin diperoleh, dan tombol kembali ke detail kursus.
-- Pada mobile, detail awal quiz memakai judul aktivitas 16 px yang dapat membungkus dengan lega, kartu akses tanpa ikon jam dengan informasi waktu tersusun vertikal, informasi quiz selebar konten, dan tombol mulai selebar konten. Halaman pengerjaan memakai satu kolom; ringkasan hanya menampilkan ikon jam dan waktu tersisa, perpindahan soal menggunakan tombol panah tanpa label, serta daftar nomor disembunyikan. Pada soal selain yang terakhir tampil panah sebelumnya dan berikutnya; pada soal terakhir panah berikutnya digantikan tombol `Selesai` dalam baris yang sama.
+- Pada mobile, detail awal quiz memakai judul aktivitas 16 px yang dapat membungkus dengan lega, kartu akses tanpa ikon jam dengan informasi waktu dan batas dalam dua kolom sejajar, informasi quiz selebar konten, dan tombol mulai selebar konten. Halaman pengerjaan memakai satu kolom; ringkasan hanya menampilkan ikon jam dan waktu tersisa, perpindahan soal menggunakan tombol panah tanpa label, serta daftar nomor disembunyikan. Pada soal selain yang terakhir tampil panah sebelumnya dan berikutnya; pada soal terakhir panah berikutnya digantikan tombol `Selesai` dalam baris yang sama.
 - Saat pengerjaan dimulai, gunakan focus mode tanpa topbar agar ruang vertikal diprioritaskan untuk soal; seluruh baris opsi menjadi target interaksi dengan nomor opsi dan isi jawaban sejajar.
 - Pada mobile, tombol pembuka/penutup sidebar tidak dirender selama pengerjaan sehingga navigasi samping tidak dapat diakses sebelum kuis diselesaikan.
 - Label bawaan Moodle seperti `Teks soal`, `Soal [nomor] Jawaban`, dan penanda opsi `A.`/`B.`/`C.`/`D.` tidak ditampilkan; tampilkan langsung isi pertanyaan dan isi setiap jawaban.

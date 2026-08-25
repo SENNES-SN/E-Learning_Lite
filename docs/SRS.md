@@ -328,6 +328,7 @@ Fitur ini memungkinkan mahasiswa melihat detail course yang berasal dari Moodle,
 | REQ-021 | Sistem tidak menyediakan pembuatan kursus baru dari E-Learning Lite karena service `moodle-mobile-app` tidak mendukung fitur tersebut; kursus baru dibuat melalui E-Learning UAD/Moodle. | High |
 | REQ-022 | Sistem harus menampilkan detail course berdasarkan data Moodle yang tersedia. | High |
 | REQ-023 | Sistem harus menyediakan fitur untuk mengakses dan menampilkan materi pembelajaran/resource course dari Moodle. | High |
+| REQ-023A | Detail materi harus menampilkan deskripsi resource yang tersedia melalui Moodle Web Service, dengan data ringkas modul sebagai fallback jika detail resource tidak tersedia. | High |
 | REQ-024 | Sistem harus menyediakan fitur untuk mengakses kuis dan informasi aktivitas pembelajaran dari Moodle. | High |
 | REQ-025 | Sistem harus menyediakan fitur akses dan pengumpulan tugas melalui E-Learning Lite apabila layanan Moodle Web Service mendukung dan mahasiswa memiliki hak akses yang sesuai. | High |
 | REQ-025A | Detail tugas harus menampilkan deskripsi assignment, kemudian instruksi assignment yang diikuti panduan pengumpulan tambahan dari aplikasi, dengan judul antarmuka `Deskripsi Tugas` dan `Instruksi Tugas`. | High |
