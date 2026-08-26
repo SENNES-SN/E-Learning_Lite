@@ -353,7 +353,7 @@ Class yang direkomendasikan:
 - Gunakan hero horizontal soft blue dengan judul sambutan di kiri dan ilustrasi mahasiswa belajar di kanan.
 - Hero memakai shadow lembut dan radius sekitar `10px`.
 - Daftar kursus menggunakan grid tiga kolom pada desktop.
-- Setiap course card memuat identitas singkat mata kuliah, nama course, progress bar, panel deadline, dan shortcut materi.
+- Setiap course card memuat identitas singkat mata kuliah, nama course, progress bar, panel deadline, dan aksi `Buka Kelas` menuju detail kursus.
 - Panel deadline memakai blue-50; tanggal deadline memakai danger-soft.
 - Card menggunakan padding `10–20px`, radius `14px`, dan shadow card.
 - Konten utama scroll; sidebar dan topbar tetap stabil.
