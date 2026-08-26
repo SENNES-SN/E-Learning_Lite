@@ -1,5 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+
+@font-face {
+    font-family: 'Instrument Sans';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../fonts/instrument-sans_5.3.0_latin-wght-normal.woff2') format('woff2-variations');
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -536,7 +543,7 @@ img.material-reader-preview {
     display: block;
     color: #ffffff !important;
     content: "\00d7";
-    font-family: Arial, sans-serif;
+    font-family: var(--font-sans);
     font-size: 24px;
     font-weight: 400;
     line-height: 1;
