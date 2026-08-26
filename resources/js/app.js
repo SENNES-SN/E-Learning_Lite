@@ -58,6 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (notificationAction && notificationBadge) {
         let notificationRequestInFlight = false;
         let lastNotificationCheck = 0;
+        const isNotificationPage = document.body.classList.contains(
+            "notification-final-page",
+        );
 
         const updateNotificationBadge = (count) => {
             const unreadCount = Math.max(0, Number.parseInt(count, 10) || 0);
@@ -106,20 +109,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        refreshNotificationBadge({ force: true });
+        if (!isNotificationPage) {
+            refreshNotificationBadge({ force: true });
 
-        window.setInterval(() => {
-            if (document.visibilityState === "visible") {
-                refreshNotificationBadge();
-            }
-        }, 60000);
+            window.setInterval(() => {
+                if (document.visibilityState === "visible") {
+                    refreshNotificationBadge();
+                }
+            }, 60000);
 
-        window.addEventListener("focus", () => refreshNotificationBadge());
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible") {
-                refreshNotificationBadge();
-            }
-        });
+            window.addEventListener("focus", () => refreshNotificationBadge());
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                    refreshNotificationBadge();
+                }
+            });
+        }
     }
 
     const dashboardHero = document.querySelector(".final-dashboard-hero");

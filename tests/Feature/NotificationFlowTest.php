@@ -398,6 +398,7 @@ class NotificationFlowTest extends TestCase
                 'deadline' => 1,
                 'task' => 1,
             ])
+            ->assertSee('Buka notifikasi, 2 belum dibaca')
             ->assertSee('Semua, 2 baru')
             ->assertSee('Batas Waktu, 1 baru')
             ->assertSee('Nilai Tugas, 1 baru');
