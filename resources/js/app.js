@@ -48,6 +48,80 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const studentTopbar = document.querySelector(".student-topbar");
+    const notificationAction = document.querySelector(
+        "[data-notification-summary-url]",
+    );
+    const notificationBadge = notificationAction?.querySelector(
+        "[data-notification-badge]",
+    );
+
+    if (notificationAction && notificationBadge) {
+        let notificationRequestInFlight = false;
+        let lastNotificationCheck = 0;
+
+        const updateNotificationBadge = (count) => {
+            const unreadCount = Math.max(0, Number.parseInt(count, 10) || 0);
+
+            notificationBadge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+            notificationBadge.hidden = unreadCount === 0;
+            notificationAction.setAttribute(
+                "aria-label",
+                unreadCount > 0
+                    ? `Buka notifikasi, ${unreadCount} belum dibaca`
+                    : "Buka notifikasi",
+            );
+        };
+
+        const refreshNotificationBadge = async ({ force = false } = {}) => {
+            const now = Date.now();
+            if (
+                notificationRequestInFlight
+                || (!force && now - lastNotificationCheck < 10000)
+            ) {
+                return;
+            }
+
+            notificationRequestInFlight = true;
+
+            try {
+                const response = await fetch(
+                    notificationAction.dataset.notificationSummaryUrl,
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    },
+                );
+
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                updateNotificationBadge(payload?.unread?.all ?? 0);
+                lastNotificationCheck = Date.now();
+            } catch {
+                // Pertahankan badge terakhir ketika layanan notifikasi sementara gagal.
+            } finally {
+                notificationRequestInFlight = false;
+            }
+        };
+
+        refreshNotificationBadge({ force: true });
+
+        window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                refreshNotificationBadge();
+            }
+        }, 60000);
+
+        window.addEventListener("focus", () => refreshNotificationBadge());
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                refreshNotificationBadge();
+            }
+        });
+    }
+
     const dashboardHero = document.querySelector(".final-dashboard-hero");
     const courseSummary = document.querySelector(
         ".course-detail-final-page .final-activity-summary",

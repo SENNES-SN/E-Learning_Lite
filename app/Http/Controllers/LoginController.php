@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\GamificationCompletionStore;
 use App\Services\GamificationService;
 use App\Services\MoodleService;
+use App\Services\NotificationReadStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -16,6 +17,7 @@ class LoginController extends Controller
         protected MoodleService $moodleService,
         protected GamificationService $gamificationService,
         protected ?GamificationCompletionStore $gamificationCompletionStore = null,
+        protected ?NotificationReadStore $notificationReadStore = null,
     ) {}
 
     public function showLoginForm()
@@ -149,7 +151,7 @@ class LoginController extends Controller
         }
 
         try {
-            $notificationEvents = $this->notificationEventsForCourses($allUserMoodleCourses);
+            $notificationEvents = $this->cachedNotificationEventsForCourses($allUserMoodleCourses);
             $unreadNotificationCount = $this->unreadNotificationCount($notificationEvents);
             $pendingDeadlineEvents = $this->withoutCompletedDeadlineEvents(
                 $notificationEvents,
@@ -185,11 +187,11 @@ class LoginController extends Controller
         }
 
         $payload = $request->validate([
-            'filter' => ['nullable', 'string', 'in:deadline'],
+            'filter' => ['nullable', 'string', 'in:deadline,task'],
         ]);
         $activeFilter = $payload['filter'] ?? 'all';
 
-        $courses = $this->moodleCoursesForUsername(session('username'));
+        $courses = $this->cachedNotificationCoursesForCurrentUser();
         $courseIds = collect($courses)
             ->pluck('id')
             ->filter()
@@ -200,11 +202,12 @@ class LoginController extends Controller
         $allEvents = [];
         $notificationError = null;
         $unreadEventKeys = [];
+        $unreadNotificationCounts = ['all' => 0, 'deadline' => 0, 'task' => 0];
         $deadlineEventCount = 0;
 
         if ($courseIds !== []) {
             try {
-                $allEvents = $this->notificationEventsForCourses($courses);
+                $allEvents = $this->cachedNotificationEventsForCourses($courses);
                 $allEvents = array_map(function ($event): array {
                     if (! is_array($event)) {
                         return [];
@@ -216,9 +219,12 @@ class LoginController extends Controller
                 }, $allEvents);
                 $deadlineEventCount = count($this->deadlineNotificationEvents($allEvents));
                 $unreadEventKeys = $this->unreadNotificationKeys($allEvents);
-                $events = $activeFilter === 'deadline'
-                    ? $this->deadlineNotificationEvents($allEvents)
-                    : $allEvents;
+                $unreadNotificationCounts = $this->unreadNotificationCounts($allEvents, $unreadEventKeys);
+                $events = match ($activeFilter) {
+                    'deadline' => $this->deadlineNotificationEvents($allEvents),
+                    'task' => $this->taskNotificationEvents($allEvents),
+                    default => $allEvents,
+                };
                 $this->markNotificationsAsRead($allEvents);
             } catch (\Throwable $throwable) {
                 $notificationError = $this->moodleUnavailableMessage($throwable);
@@ -233,8 +239,33 @@ class LoginController extends Controller
             'activeFilter' => $activeFilter,
             'deadlineEventCount' => $deadlineEventCount,
             'unreadEventKeys' => $unreadEventKeys,
+            'unreadNotificationCount' => $unreadNotificationCounts['all'],
+            'unreadNotificationCounts' => $unreadNotificationCounts,
             'notificationError' => $notificationError,
         ]);
+    }
+
+    public function notificationUnreadSummary(Request $request)
+    {
+        if (! session('logged_in')) {
+            return response()->json([
+                'message' => 'Sesi pengguna telah berakhir.',
+            ], 401);
+        }
+
+        try {
+            $courses = $this->cachedNotificationCoursesForCurrentUser();
+            $events = $this->cachedNotificationEventsForCourses($courses);
+
+            return response()->json([
+                'unread' => $this->unreadNotificationCounts($events),
+                'checked_at' => now()->toIso8601String(),
+            ]);
+        } catch (\Throwable) {
+            return response()->json([
+                'message' => 'Notifikasi belum dapat diperbarui.',
+            ], 503);
+        }
     }
 
     public function profile()
@@ -428,6 +459,7 @@ class LoginController extends Controller
         $assignmentSubmissions = [];
         $assignmentGrade = null;
         $assignmentSubmissionError = null;
+        $assignmentNoteError = null;
         $canGradeAssignment = false;
         $canPreviewQuizAsTeacher = false;
         $enrolledUsers = [];
@@ -435,7 +467,7 @@ class LoginController extends Controller
         $contents = null;
         $courseProgress = null;
         $materialDescription = '';
-        $assignmentAnswer = null;
+        $assignmentNote = null;
         $assignmentDescription = '';
         $assignmentInstructions = '';
         $assignmentAttachments = [];
@@ -501,7 +533,22 @@ class LoginController extends Controller
                     try {
                         $submissionStatus = $this->activeMoodleService()->getAssignmentSubmissionStatus((int) $assignment['id']);
                         $assignmentSettings = $this->assignmentSubmissionSettings($assignment, $submissionStatus);
-                        $assignmentAnswer = $this->submissionOnlineText($submissionStatus);
+                        $assignmentPageMode = strtolower((string) request()->query('mode', 'detail'));
+                        $submissionId = $this->assignmentSubmissionId($submissionStatus);
+                        if (in_array($assignmentPageMode, ['work', 'confirm'], true) && $submissionId !== null) {
+                            try {
+                                $commentResponse = $this->activeMoodleService()->getAssignmentSubmissionComments(
+                                    $moduleId,
+                                    $submissionId,
+                                );
+                                $assignmentNote = $this->latestAssignmentSubmissionComment(
+                                    $commentResponse,
+                                    (int) ((session('moodle_user') ?? [])['id'] ?? 0),
+                                );
+                            } catch (\Throwable $throwable) {
+                                $assignmentNoteError = $this->moodleUnavailableMessage($throwable);
+                            }
+                        }
                         $assignmentGrade = $this->currentUserAssignmentGrade($courseId, $assignment, $submissionStatus);
                     } catch (\Throwable $throwable) {
                         $assignmentSubmissionError = $this->moodleUnavailableMessage($throwable);
@@ -552,13 +599,14 @@ class LoginController extends Controller
             'quizError' => $quizError,
             'submissionStatus' => $submissionStatus,
             'assignmentSettings' => $assignmentSettings,
-            'assignmentAnswer' => $assignmentAnswer,
+            'assignmentNote' => $assignmentNote,
             'assignmentDescription' => $assignmentDescription,
             'assignmentInstructions' => $assignmentInstructions,
             'assignmentAttachments' => $assignmentAttachments,
             'assignmentSubmissions' => $assignmentSubmissions,
             'assignmentGrade' => $assignmentGrade,
             'assignmentSubmissionError' => $assignmentSubmissionError,
+            'assignmentNoteError' => $assignmentNoteError,
             'canGradeAssignment' => $canGradeAssignment,
             'canPreviewQuizAsTeacher' => $canPreviewQuizAsTeacher,
             'assignmentWorkflowStates' => $this->assignmentWorkflowStates(),
@@ -1115,12 +1163,12 @@ class LoginController extends Controller
                 : $assignmentSettings['remaining_files'];
 
             $payload = $request->validate([
-                'answer' => ['nullable', 'string', 'max:10000'],
+                'note' => ['nullable', 'string', 'max:10000'],
                 'replace_files' => ['nullable', 'boolean'],
                 'answer_files' => ['nullable', 'array', 'max:' . $uploadLimit],
                 'answer_files.*' => ['nullable', 'file', 'max:' . $maxUploadKilobytes],
             ], [
-                'answer.max' => 'Jawaban tugas maksimal 10.000 karakter.',
+                'note.max' => 'Catatan maksimal 10.000 karakter.',
                 'answer_files.array' => 'Lampiran jawaban harus berupa daftar file.',
                 'answer_files.max' => $replaceFiles
                     ? 'Jumlah file pengganti maksimal ' . $assignmentSettings['max_files'] . ' file.'
@@ -1129,14 +1177,8 @@ class LoginController extends Controller
                 'answer_files.*.max' => 'Ukuran tiap file jawaban maksimal ' . $assignmentSettings['max_file_size_label'] . '.',
             ]);
 
-            $answer = trim((string) ($payload['answer'] ?? ''));
+            $note = trim((string) ($payload['note'] ?? ''));
             $answerFiles = $request->file('answer_files', []);
-
-            if ($answer !== '' && ! $assignmentSettings['text_enabled']) {
-                return back()
-                    ->withInput()
-                    ->withErrors(['answer' => 'Tugas ini tidak menerima jawaban berupa teks.']);
-            }
 
             if ($answerFiles !== [] && ! $assignmentSettings['file_enabled']) {
                 return back()
@@ -1150,10 +1192,10 @@ class LoginController extends Controller
                     ->withErrors(['answer_files' => 'Batas jumlah file sudah tercapai. Hapus atau ganti file yang salah terlebih dahulu.']);
             }
 
-            if ($answer === '' && $answerFiles === []) {
+            if ($assignmentSettings['submission_files'] === [] && $answerFiles === []) {
                 return back()
                     ->withInput()
-                    ->withErrors(['answer' => 'Isi jawaban teks atau upload file jawaban terlebih dahulu.']);
+                    ->withErrors(['answer_files' => 'Upload file jawaban terlebih dahulu.']);
             }
 
             foreach ($answerFiles as $file) {
@@ -1182,11 +1224,25 @@ class LoginController extends Controller
                 }
             }
 
-            $this->activeMoodleService()->saveAssignmentSubmission(
-                (int) $assignment['id'],
-                $answer !== '' ? $answer : null,
-                $draftItemId,
-            );
+            if ($draftItemId !== null) {
+                $this->activeMoodleService()->saveAssignmentSubmission(
+                    (int) $assignment['id'],
+                    null,
+                    $draftItemId,
+                );
+                $submissionStatus = $this->activeMoodleService()->getAssignmentSubmissionStatus((int) $assignment['id']);
+            }
+
+            if ($note !== '') {
+                $submissionId = $this->assignmentSubmissionId($submissionStatus);
+                if ($submissionId === null) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['note' => 'Catatan belum dapat disimpan karena data pengajuan tugas belum tersedia.']);
+                }
+
+                $this->activeMoodleService()->addAssignmentSubmissionComment($moduleId, $submissionId, $note);
+            }
 
             return redirect()
                 ->to(route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) . '?mode=confirm')
@@ -1194,7 +1250,7 @@ class LoginController extends Controller
         } catch (\Throwable $throwable) {
             return back()
                 ->withInput()
-                ->withErrors(['answer' => 'Jawaban belum berhasil dikirim. ' . $this->moodleUnavailableMessage($throwable)]);
+                ->withErrors(['note' => 'File atau catatan belum berhasil disiapkan. ' . $this->moodleUnavailableMessage($throwable)]);
         }
     }
 
@@ -1329,8 +1385,8 @@ class LoginController extends Controller
                     ->withErrors(['final_submit' => 'Waktu pengumpulan telah berakhir. Tugas tidak dapat dikumpulkan.']);
             }
 
-            if ($assignmentSettings['submission_files'] === [] && trim($this->submissionOnlineText($submissionStatus)) === '') {
-                return back()->withErrors(['final_submit' => 'Unggah file atau isi jawaban sebelum mengumpulkan tugas.']);
+            if ($assignmentSettings['submission_files'] === []) {
+                return back()->withErrors(['final_submit' => 'Upload file jawaban sebelum mengumpulkan tugas.']);
             }
 
             $currentUserId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
@@ -2382,6 +2438,19 @@ class LoginController extends Controller
             $events = $calendarResponse['events'];
         }
 
+        $events = array_map(function ($event): array {
+            $event = is_array($event) ? $event : [];
+            $moduleName = strtolower((string) ($event['modulename'] ?? ''));
+            if (in_array($moduleName, ['assign', 'quiz'], true)) {
+                $activityName = $this->notificationActivityDisplayName($event);
+                if ($activityName !== '') {
+                    $event['name'] = $activityName;
+                }
+            }
+
+            return $event;
+        }, $events);
+
         usort($events, fn($a, $b) => (int) ($a['timesort'] ?? $a['timestart'] ?? 0) <=> (int) ($b['timesort'] ?? $b['timestart'] ?? 0));
 
         return $events;
@@ -2410,8 +2479,131 @@ class LoginController extends Controller
         }
 
         array_push($events, ...$this->fallbackDeadlineEventsForCourses($courses));
+        array_push($events, ...$this->assignmentGradeNotificationEventsForCourses($courses));
 
         return $this->deduplicateNotificationEvents($events);
+    }
+
+    protected function cachedNotificationCoursesForCurrentUser(): array
+    {
+        return Cache::remember(
+            $this->notificationCoursesCacheKey(),
+            now()->addSeconds(30),
+            fn (): array => $this->moodleCoursesForUsername(session('username')),
+        );
+    }
+
+    protected function cachedNotificationEventsForCourses(mixed $courses): array
+    {
+        $courses = is_array($courses) ? $courses : [];
+        $courseIds = collect($courses)
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($courseIds === []) {
+            return [];
+        }
+
+        return Cache::remember(
+            $this->notificationEventsCacheKey($courseIds),
+            now()->addSeconds(30),
+            fn (): array => $this->notificationEventsForCourses($courses),
+        );
+    }
+
+    protected function notificationCoursesCacheKey(): string
+    {
+        return 'notification_courses:v1:' . $this->notificationUserCacheIdentity();
+    }
+
+    /**
+     * @param  array<int, int>  $courseIds
+     */
+    protected function notificationEventsCacheKey(array $courseIds): string
+    {
+        return 'notification_events:v1:' . $this->notificationUserCacheIdentity() . ':' . sha1(implode(',', $courseIds));
+    }
+
+    protected function notificationUserCacheIdentity(): string
+    {
+        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        if ($userId > 0) {
+            return (string) $userId;
+        }
+
+        return sha1((string) session('username', 'guest'));
+    }
+
+    protected function assignmentGradeNotificationEventsForCourses(array $courses): array
+    {
+        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $events = [];
+
+        foreach ($courses as $course) {
+            if (! is_array($course)) {
+                continue;
+            }
+
+            $courseId = (int) ($course['id'] ?? 0);
+            if ($courseId <= 0) {
+                continue;
+            }
+
+            try {
+                $gradesData = $this->activeMoodleService()->getUserGrades($courseId, $userId);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $gradeItems = is_array($gradesData['gradeitems'] ?? null)
+                ? $gradesData['gradeitems']
+                : [];
+
+            foreach ($gradeItems as $item) {
+                if (! is_array($item)
+                    || strtolower((string) ($item['itemmodule'] ?? '')) !== 'assign'
+                    || $this->gradeItemIsHidden($item)) {
+                    continue;
+                }
+
+                $grade = $this->firstFilledString(
+                    $item['gradefordisplay'] ?? null,
+                    $item['gradeformatted'] ?? null,
+                    $item['str_grade'] ?? null,
+                    $item['graderaw'] ?? null,
+                    $item['grade'] ?? null,
+                );
+                $gradedAt = (int) ($item['gradedategraded'] ?? 0);
+
+                if (! $this->hasVisibleGrade($grade) || $gradedAt <= 0) {
+                    continue;
+                }
+
+                $assignmentName = trim(strip_tags((string) ($item['itemname'] ?? 'Tugas')));
+                $events[] = $this->moodleNotificationEvent([
+                    'name' => $assignmentName !== '' ? $assignmentName : 'Tugas',
+                    'courseid' => $courseId,
+                    'course_name' => $course['fullname'] ?? $course['displayname'] ?? 'Kursus',
+                    'cmid' => $item['cmid'] ?? null,
+                    'instance' => $item['iteminstance'] ?? null,
+                    'modulename' => 'assign',
+                    'eventtype' => 'assignment_graded',
+                    'time' => $gradedAt,
+                    'source' => 'assignment-grade',
+                    'action' => 'view-grade',
+                ]);
+            }
+        }
+
+        return $events;
     }
 
     protected function fallbackDeadlineEventsForCourses(array $courses): array
@@ -2585,6 +2777,8 @@ class LoginController extends Controller
             'timesort' => $time,
             'timestart' => $time,
             'source' => $event['source'] ?? 'lite',
+            'description' => $event['description'] ?? null,
+            'action' => $event['action'] ?? null,
             'course' => [
                 'id' => $event['courseid'] ?? null,
                 'fullname' => $event['course_name'] ?? 'Kursus',
@@ -2600,19 +2794,114 @@ class LoginController extends Controller
     protected function deduplicateNotificationEvents(array $events): array
     {
         $unique = [];
+        $moduleIdsByInstance = [];
+
+        foreach ($events as $event) {
+            if (! is_array($event)) {
+                continue;
+            }
+
+            $courseId = (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0));
+            $moduleName = strtolower((string) ($event['modulename'] ?? ''));
+            $moduleId = (int) ($event['cmid'] ?? 0);
+            $instanceId = (int) ($event['instance'] ?? 0);
+
+            if ($courseId > 0 && $moduleName !== '' && $moduleId > 0 && $instanceId > 0) {
+                $moduleIdsByInstance[$courseId . ':' . $moduleName . ':' . $instanceId] = $moduleId;
+            }
+        }
 
         foreach ($events as $event) {
             if (! is_array($event) || ! $this->isRelevantNotificationEvent($event)) {
                 continue;
             }
 
-            $unique[$this->notificationEventKey($event)] = $event;
+            if ((int) ($event['cmid'] ?? 0) <= 0 && (int) ($event['instance'] ?? 0) > 0) {
+                $courseId = (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0));
+                $moduleName = strtolower((string) ($event['modulename'] ?? ''));
+                $instanceKey = $courseId . ':' . $moduleName . ':' . (int) $event['instance'];
+                if (isset($moduleIdsByInstance[$instanceKey])) {
+                    $event['cmid'] = $moduleIdsByInstance[$instanceKey];
+                }
+            }
+
+            $activityKey = $this->notificationActivityKey($event);
+            $eventKey = $activityKey ?? $this->notificationEventKey($event);
+
+            if (! isset($unique[$eventKey])) {
+                $unique[$eventKey] = $event;
+                continue;
+            }
+
+            $current = $unique[$eventKey];
+            $eventPriority = $this->notificationEventPriority($event);
+            $currentPriority = $this->notificationEventPriority($current);
+
+            if ($eventPriority > $currentPriority
+                || ($eventPriority === $currentPriority
+                    && $this->notificationEventTime($event) > $this->notificationEventTime($current))) {
+                $unique[$eventKey] = $event;
+            }
         }
 
         $events = array_values($unique);
         usort($events, fn($a, $b) => $this->notificationEventTime($a) <=> $this->notificationEventTime($b));
 
         return $events;
+    }
+
+    protected function notificationActivityKey(array $event): ?string
+    {
+        $moduleName = strtolower((string) ($event['modulename'] ?? ''));
+        if (! in_array($moduleName, ['assign', 'quiz'], true)) {
+            return null;
+        }
+
+        $courseId = (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0));
+        $activityName = mb_strtolower($this->notificationActivityDisplayName($event));
+        if ($courseId > 0 && $activityName !== '') {
+            return 'activity:' . $courseId . ':' . $moduleName . ':name-' . sha1($activityName);
+        }
+
+        $moduleId = (int) ($event['cmid'] ?? 0);
+        $instanceId = (int) ($event['instance'] ?? 0);
+        $activityId = $moduleId > 0 ? 'cm-' . $moduleId : ($instanceId > 0 ? 'instance-' . $instanceId : null);
+
+        return $courseId > 0 && $activityId !== null
+            ? 'activity:' . $courseId . ':' . $moduleName . ':' . $activityId
+            : null;
+    }
+
+    protected function notificationActivityDisplayName(array $event): string
+    {
+        $name = $this->moodlePlainText($event['activityname'] ?? $event['name'] ?? '');
+        $name = preg_replace(
+            '/\s*(?:[-–—:]\s*)?(?:jatuh\s+tempo|dibuka|buka|mulai|akan\s+berakhir|akan\s+ditutup|ditutup|tutup|penutupan|is\s+due|closes?|opens?|due|close|open)\s*:?[.!]?\s*$/iu',
+            '',
+            $name,
+        ) ?? $name;
+
+        return trim($name);
+    }
+
+    protected function notificationEventPriority(array $event): int
+    {
+        $source = strtolower((string) ($event['source'] ?? ''));
+        $eventType = strtolower((string) ($event['eventtype'] ?? ''));
+
+        if ($eventType === 'assignment_graded' || $source === 'assignment-grade') {
+            return 500;
+        }
+
+        if (in_array($source, ['assignment', 'quiz'], true)) {
+            return 400;
+        }
+
+        if ($this->isDeadlineNotificationEvent($event)) {
+            return 300;
+        }
+
+        return $this->notificationEventTime($event) > 0 ? 200 : 100;
     }
 
     protected function upcomingDeadlineEvents(array $events, int $limit = 5): array
@@ -2706,16 +2995,29 @@ class LoginController extends Controller
         return $events;
     }
 
+    protected function taskNotificationEvents(array $events): array
+    {
+        return array_values(array_filter(
+            $events,
+            fn($event): bool => is_array($event)
+                && strtolower((string) ($event['eventtype'] ?? '')) === 'assignment_graded',
+        ));
+    }
+
     protected function isDeadlineNotificationEvent(array $event): bool
     {
         $eventType = strtolower((string) ($event['eventtype'] ?? ''));
 
-        return in_array($eventType, ['deadline', 'assign', 'assignment', 'quiz'], true);
+        return in_array($eventType, ['deadline', 'due', 'close', 'closing', 'assign', 'assignment', 'quiz'], true);
     }
 
     protected function isRelevantNotificationEvent(array $event): bool
     {
         $time = $this->notificationEventTime($event);
+        if (($event['source'] ?? null) === 'assignment-grade') {
+            return $time > 0 && $time >= strtotime('-30 days');
+        }
+
         if ($time <= 0) {
             return ($event['source'] ?? null) === 'course-content'
                 && in_array(strtolower((string) ($event['eventtype'] ?? '')), ['materi', 'tugas', 'kuis', 'aktivitas'], true);
@@ -2734,15 +3036,51 @@ class LoginController extends Controller
         return count($this->unreadNotificationKeys($events));
     }
 
+    /**
+     * @param  array<int, string>|null  $unreadKeys
+     * @return array{all: int, deadline: int, task: int}
+     */
+    protected function unreadNotificationCounts(array $events, ?array $unreadKeys = null): array
+    {
+        $unreadKeys ??= $this->unreadNotificationKeys($events);
+        $unreadLookup = array_flip($unreadKeys);
+        $countUnreadEvents = function (array $categoryEvents) use ($unreadLookup): int {
+            $count = 0;
+
+            foreach ($categoryEvents as $event) {
+                if (is_array($event) && isset($unreadLookup[$this->notificationEventKey($event)])) {
+                    $count++;
+                }
+            }
+
+            return $count;
+        };
+
+        return [
+            'all' => count($unreadKeys),
+            'deadline' => $countUnreadEvents($this->deadlineNotificationEvents($events)),
+            'task' => $countUnreadEvents($this->taskNotificationEvents($events)),
+        ];
+    }
+
     protected function unreadNotificationKeys(array $events): array
     {
-        $readKeys = session($this->notificationReadSessionKey(), []);
-        if (! is_array($readKeys)) {
-            $readKeys = [];
+        $sessionReadKeys = session($this->notificationReadSessionKey(), []);
+        $sessionReadKeys = is_array($sessionReadKeys) ? $sessionReadKeys : [];
+        $sessionReadLookup = array_flip($sessionReadKeys);
+        $eventKeys = [];
+
+        foreach ($events as $event) {
+            if (is_array($event)) {
+                $eventKeys[] = $this->notificationEventKey($event);
+            }
         }
 
-        $readKeys = array_flip($readKeys);
+        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        $persistedReadKeys = $this->notificationReadStore()->readKeysFor($userId, $eventKeys);
+        $persistedReadLookup = array_flip($persistedReadKeys);
         $unreadKeys = [];
+        $keysToMigrate = [];
 
         foreach ($events as $event) {
             if (! is_array($event)) {
@@ -2750,10 +3088,19 @@ class LoginController extends Controller
             }
 
             $key = $this->notificationEventKey($event);
-            if (! isset($readKeys[$key])) {
+            $legacyKey = $this->legacyNotificationEventKey($event);
+            $isRead = isset($persistedReadLookup[$key])
+                || isset($sessionReadLookup[$key])
+                || isset($sessionReadLookup[$legacyKey]);
+
+            if (! $isRead) {
                 $unreadKeys[] = $key;
+            } elseif (! isset($persistedReadLookup[$key])) {
+                $keysToMigrate[] = $key;
             }
         }
+
+        $this->notificationReadStore()->rememberMany($userId, $keysToMigrate);
 
         return array_values(array_unique($unreadKeys));
     }
@@ -2765,16 +3112,35 @@ class LoginController extends Controller
             $readKeys = [];
         }
 
-        foreach ($events as $event) {
-            if (is_array($event)) {
-                $readKeys[] = $this->notificationEventKey($event);
-            }
-        }
+        $eventKeys = array_values(array_unique(array_map(
+            fn (array $event): string => $this->notificationEventKey($event),
+            array_values(array_filter($events, 'is_array')),
+        )));
+
+        array_push($readKeys, ...$eventKeys);
+
+        $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
+        $this->notificationReadStore()->rememberMany($userId, $eventKeys);
 
         session([$this->notificationReadSessionKey() => array_slice(array_values(array_unique($readKeys)), -250)]);
     }
 
     protected function notificationEventKey(array $event): string
+    {
+        return sha1(json_encode([
+            'courseid' => (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0)),
+            'activity' => $this->notificationActivityKey($event)
+                ?? mb_strtolower($this->notificationActivityDisplayName($event)),
+            'kind' => strtolower((string) ($event['eventtype'] ?? '')) === 'assignment_graded'
+                ? 'assignment_graded'
+                : ($this->isDeadlineNotificationEvent($event)
+                    ? 'deadline'
+                    : strtolower((string) ($event['eventtype'] ?? 'aktivitas'))),
+            'time' => $event['timesort'] ?? $event['timestart'] ?? null,
+        ]));
+    }
+
+    protected function legacyNotificationEventKey(array $event): string
     {
         return sha1(json_encode([
             'id' => $event['id'] ?? null,
@@ -2793,6 +3159,11 @@ class LoginController extends Controller
         $userId = (int) ((session('moodle_user') ?? [])['id'] ?? 0);
 
         return 'read_notification_events.' . ($userId > 0 ? $userId : session('username', 'guest'));
+    }
+
+    protected function notificationReadStore(): NotificationReadStore
+    {
+        return $this->notificationReadStore ??= app(NotificationReadStore::class);
     }
 
     protected function activityCompletionOverrideKey(int $courseId, int $moduleId): string
@@ -3557,7 +3928,6 @@ class LoginController extends Controller
         };
 
         $fileEnabled = $configValue('enabled', 'file');
-        $textEnabled = $configValue('enabled', 'onlinetext');
         $maxFiles = (int) ($configValue('maxfilesubmissions', 'file') ?? $configValue('maxfilesubmissions') ?? 1);
         $maxFileSize = (int) ($configValue('maxsubmissionsizebytes', 'file') ?? $configValue('maxsubmissionsizebytes') ?? 20 * 1024 * 1024);
         $acceptedTypes = trim((string) ($configValue('filetypeslist', 'file') ?? $configValue('filetypeslist') ?? ''));
@@ -3573,7 +3943,6 @@ class LoginController extends Controller
 
         return [
             'file_enabled' => $fileEnabled === null ? true : $fileEnabled === '1',
-            'text_enabled' => $textEnabled === null ? true : $textEnabled === '1',
             'max_files' => $maxFiles,
             'current_files' => $currentFiles,
             'remaining_files' => max(0, $maxFiles - $currentFiles),
@@ -3688,6 +4057,41 @@ class LoginController extends Controller
                 if (isset($field['text'])) {
                     return (string) $field['text'];
                 }
+            }
+        }
+
+        return null;
+    }
+
+    protected function assignmentSubmissionId(mixed $submissionStatus): ?int
+    {
+        if (! is_array($submissionStatus)) {
+            return null;
+        }
+
+        $submissionId = (int) ($submissionStatus['lastattempt']['submission']['id'] ?? 0);
+
+        return $submissionId > 0 ? $submissionId : null;
+    }
+
+    protected function latestAssignmentSubmissionComment(mixed $commentsResponse, int $userId): ?string
+    {
+        if (! is_array($commentsResponse)) {
+            return null;
+        }
+
+        foreach (($commentsResponse['comments'] ?? []) as $comment) {
+            if (! is_array($comment)) {
+                continue;
+            }
+
+            if ($userId > 0 && (int) ($comment['userid'] ?? 0) !== $userId) {
+                continue;
+            }
+
+            $content = $this->moodlePlainText($comment['content'] ?? '');
+            if ($content !== '') {
+                return $content;
             }
         }
 

@@ -175,11 +175,11 @@ Catatan:
 | Login | `/` atau `/login` | Login menggunakan akun E-Learning UAD/Moodle. |
 | Logout | `/logout` | Mengakhiri sesi pengguna. |
 | Dashboard | `/dashboard` | Ringkasan course, progress, deadline, profil, dan feedback gamifikasi jika data tersedia. |
-| Notifikasi | `/notifications` | Halaman ringkasan aktivitas, deadline, tugas/kuis, dan informasi sistem jika data Moodle tersedia. |
+| Notifikasi | `/notifications` | Halaman ringkasan aktivitas, deadline, serta pemberitahuan tugas yang sudah dinilai jika data Moodle tersedia. |
 | Profil | `/profile` | Halaman informasi akun Moodle dan arahan pengaturan akun. |
 | Daftar Course Moodle | `/courses` | Menampilkan course dari E-Learning UAD/Moodle sesuai akses akun. |
 | Detail Course | `/courses/{courseId}` | Menampilkan informasi, topik, materi, dan aktivitas course dari Moodle. |
-| Detail Materi/Aktivitas | `/courses/{courseId}/modules/{moduleId}` | Menampilkan detail module Moodle, termasuk lampiran tugas, jawaban teks, dan upload file jawaban jika assignment mendukung. |
+| Detail Materi/Aktivitas | `/courses/{courseId}/modules/{moduleId}` | Menampilkan detail module Moodle, termasuk lampiran tugas, upload file jawaban, dan Catatan sebagai komentar pengajuan jika assignment mendukung. |
 | Peserta Kursus | `/enrolled-users` | Menampilkan peserta terdaftar jika data course dan peserta tersedia. |
 | Nilai Kursus | `/grades` | Menampilkan nilai/grade jika data tersedia dari Moodle. |
 
@@ -204,6 +204,7 @@ Tampilan dosen mengikuti struktur utama berikut:
 | Detail course | Moodle Web Service | Bergantung data course yang disediakan Moodle. |
 | Peserta course | Moodle Web Service | Tampil jika endpoint/data peserta tersedia. |
 | Nilai/grade | Moodle Web Service | Tampil jika data nilai tersedia dan pengguna berhak melihatnya. |
+| Pengumpulan tugas | Moodle Web Service | File disimpan sebagai submission tugas; `Catatan` dikelola melalui Comment API Moodle. |
 | Feedback gamifikasi | SQLite E-Learning Lite | Setiap completion aktivitas unik bernilai 10 poin; bukan sumber data akademik Moodle. |
 
 ### Alur Penggunaan Singkat
@@ -221,7 +222,10 @@ Tampilan dosen mengikuti struktur utama berikut:
 - Pembuatan kursus baru dari Lite tidak tersedia karena service Moodle yang digunakan saat ini tidak menyediakan fitur tersebut.
 - Pengelolaan kuis, materi/resource, dan submit tugas dari Lite bergantung pada hak akses pengguna, konfigurasi E-Learning UAD/Moodle, dan layanan Moodle Web Service yang tersedia.
 - Materi dan aktivitas dibuka terlebih dahulu melalui halaman E-Learning Lite. Link ke E-Learning UAD/Moodle hanya menjadi fallback untuk aktivitas interaktif yang membutuhkan engine Moodle, seperti pengerjaan kuis atau submit tugas.
-- Untuk assignment, Lite membedakan akses dosen dan mahasiswa berdasarkan role user login pada course Moodle. Mahasiswa dapat melihat lampiran tugas, aturan pengajuan, draft jawaban yang sudah tersimpan, submit jawaban teks/file sebagai draft, hapus file draft per item, ganti file draft, dan final submit ke Moodle. Dosen tidak melihat form jawaban mahasiswa; dosen melihat daftar submission yang sudah dikirim dan dapat memberi nilai/feedback apabila layanan Moodle mengizinkan. Upload file mengikuti jumlah maksimum, sisa slot upload, ukuran maksimum, dan format berkas yang dikirim oleh assignment Moodle. Saat menambah file, Lite mempertahankan file draft lama dan menambahkan file baru sampai batas maksimum terpenuhi. Jika draft hanya tersisa satu file, file terakhir tidak dikosongkan melalui hapus draft; gunakan mode ganti file draft agar file lama diganti oleh file baru. Jika jawaban sudah final submit, upload dan submit ulang dinonaktifkan di Lite.
+- Untuk assignment, mahasiswa dapat melihat lampiran tugas, aturan pengajuan, draft file yang sudah tersimpan, menambahkan `Catatan` sebagai komentar pengajuan Moodle, mengganti file draft, dan melakukan final submit ke Moodle. Upload file mengikuti jumlah maksimum, ukuran maksimum, dan format berkas dari assignment Moodle. Token/service Moodle harus mengizinkan `core_comment_get_comments` dan `core_comment_add_comments`. Jika jawaban sudah final submit, upload dan submit ulang dinonaktifkan di Lite.
+- Notifikasi tugas yang sudah dinilai dibentuk dari laporan nilai Moodle. Notifikasi tampil pada filter `Semua` dan `Nilai Tugas`; filter `Nilai Tugas` khusus memuat tugas yang sudah dinilai. Tombol `Lihat Nilai` membuka halaman Detail Nilai pada tab Tugas untuk kursus terkait.
+- Badge notifikasi diperbarui pada seluruh halaman mahasiswa yang memiliki topbar ketika halaman dimuat, setiap 60 detik saat tab aktif, dan saat tab browser kembali aktif. Halaman Notifikasi menampilkan jumlah baru pada filter `Semua`, `Batas Waktu`, dan `Nilai Tugas` sebelum statusnya ditandai dibaca.
+- Status baca disimpan sebagai kunci teknis per mahasiswa pada tabel `notification_reads`, bukan sebagai salinan data akademik. Jalankan migrasi saat deploy dan pertahankan database aplikasi agar notifikasi lama tidak kembali dianggap baru.
 - Jika Moodle Web Service tidak dapat diakses, aplikasi menampilkan pesan kegagalan dan fitur yang membutuhkan Moodle tidak dapat berjalan.
 - Daftar peserta dan struktur aktivitas gamifikasi tetap bergantung pada data Moodle yang bisa dibaca.
 - Notifikasi email tidak dibuat oleh E-Learning Lite; email mengikuti mekanisme E-Learning UAD/Moodle jika tersedia.
@@ -234,6 +238,7 @@ Tampilan dosen mengikuti struktur utama berikut:
 | `/` atau `/login` | Login |
 | `/dashboard` | Dashboard |
 | `/notifications` | Notifikasi dan informasi sistem |
+| `/notifications/unread-summary` | Ringkasan jumlah notifikasi belum dibaca untuk badge topbar |
 | `/profile` | Profil akun Moodle |
 | `/courses` | Daftar kursus Moodle |
 | `/courses/{courseId}` | Detail course, materi, dan aktivitas dari Moodle |

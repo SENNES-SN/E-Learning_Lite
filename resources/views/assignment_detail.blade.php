@@ -14,7 +14,6 @@
         $activityInstructions = trim((string) ($assignmentInstructions ?? ''));
         $settings = $assignmentSettings ?? [
             'file_enabled' => true,
-            'text_enabled' => true,
             'max_files' => 1,
             'max_file_size' => 10 * 1024 * 1024,
             'max_file_size_label' => '10 MB',
@@ -85,8 +84,16 @@
                     <div class="assignment-page-feedback is-error" role="alert">Detail tugas belum dapat ditampilkan. Silakan coba lagi beberapa saat.</div>
                 @endif
 
+                @if (session('success'))
+                    <div class="assignment-page-feedback" role="status">{{ session('success') }}</div>
+                @endif
+
                 @if ($errors->any() && ! $showFormatError && ! $deadlinePassed)
                     <div class="assignment-page-feedback is-error" role="alert">{{ $errors->first() }}</div>
+                @endif
+
+                @if ($assignmentNoteError)
+                    <div class="assignment-page-feedback is-error" role="alert">Catatan pengajuan belum dapat dimuat. {{ $assignmentNoteError }}</div>
                 @endif
 
                 @if ($pageMode === 'detail')
@@ -205,12 +212,10 @@
                                 </div>
                             @endif
 
-                            @if ($settings['text_enabled'] ?? true)
-                                <label class="assignment-note-field">
-                                    <span>Catatan (Opsional)</span>
-                                    <textarea name="answer" rows="6">{{ old('answer', $assignmentAnswer ?? '') }}</textarea>
-                                </label>
-                            @endif
+                            <label class="assignment-note-field">
+                                <span>Catatan (Opsional)</span>
+                                <textarea name="note" rows="6">{{ old('note') }}</textarea>
+                            </label>
 
                             <div class="assignment-work-actions">
                                 <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId]) }}" data-loading-button data-loading-tone="dark">Batal</a>
@@ -241,7 +246,7 @@
                                     @endforelse
                                 </dd>
                                 <dt>Catatan</dt>
-                                <dd>{{ trim((string) ($assignmentAnswer ?? '')) !== '' ? $assignmentAnswer : '-' }}</dd>
+                                <dd>{{ trim((string) ($assignmentNote ?? '')) !== '' ? $assignmentNote : '-' }}</dd>
                             </dl>
                         </section>
 
@@ -250,7 +255,7 @@
                                 <a class="assignment-secondary-button" href="{{ route('courses.modules.show', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'work']) }}" data-loading-button data-loading-tone="dark">Batal</a>
                                 <form method="POST" action="{{ route('courses.modules.assignment.final-submit', ['courseId' => $courseId, 'moduleId' => $moduleId, 'mode' => 'confirm']) }}">
                                     @csrf
-                                    <button class="assignment-primary-button" type="submit" data-loading-button {{ $submissionFiles->isEmpty() && trim((string) ($assignmentAnswer ?? '')) === '' ? 'disabled' : '' }}>Kumpulkan</button>
+                                    <button class="assignment-primary-button" type="submit" data-loading-button {{ $submissionFiles->isEmpty() ? 'disabled' : '' }}>Kumpulkan</button>
                                 </form>
                             @else
                                 <a class="assignment-secondary-button" href="{{ route('courses.show', ['courseId' => $courseId]) }}" data-loading-button data-loading-tone="dark">Kembali ke Detail Mata Kuliah</a>

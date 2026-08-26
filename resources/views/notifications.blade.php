@@ -21,7 +21,7 @@
                     </span>
                     <div>
                         <h1>Notifikasi</h1>
-                        <p>Pantau aktivitas dan batas waktu pembelajaranmu.</p>
+                        <p>Pantau aktivitas, batas waktu, dan hasil penilaian tugasmu.</p>
                     </div>
                     <a class="final-back-button" href="{{ route('dashboard') }}" aria-label="Kembali ke dashboard" data-loading-button data-loading-tone="dark">
                         <i data-lucide="undo-2" aria-hidden="true"></i>
@@ -40,8 +40,42 @@
                 </section>
 
                 <nav class="notification-final-filters" aria-label="Filter notifikasi">
-                    <a class="{{ ($activeFilter ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('notifications') }}" data-loading-button>Semua</a>
-                    <a class="{{ ($activeFilter ?? 'all') === 'deadline' ? 'active' : '' }}" href="{{ route('notifications', ['filter' => 'deadline']) }}" data-loading-button>Batas Waktu</a>
+                    @php
+                        $filterUnreadCounts = $unreadNotificationCounts ?? ['all' => 0, 'deadline' => 0, 'task' => 0];
+                    @endphp
+                    <a
+                        class="{{ ($activeFilter ?? 'all') === 'all' ? 'active' : '' }}"
+                        href="{{ route('notifications') }}"
+                        aria-label="Semua{{ ($filterUnreadCounts['all'] ?? 0) > 0 ? ', '.$filterUnreadCounts['all'].' baru' : '' }}"
+                        data-loading-button
+                    >
+                        <span>Semua</span>
+                        @if (($filterUnreadCounts['all'] ?? 0) > 0)
+                            <strong class="notification-filter-badge">{{ $filterUnreadCounts['all'] > 99 ? '99+' : $filterUnreadCounts['all'] }}</strong>
+                        @endif
+                    </a>
+                    <a
+                        class="{{ ($activeFilter ?? 'all') === 'deadline' ? 'active' : '' }}"
+                        href="{{ route('notifications', ['filter' => 'deadline']) }}"
+                        aria-label="Batas Waktu{{ ($filterUnreadCounts['deadline'] ?? 0) > 0 ? ', '.$filterUnreadCounts['deadline'].' baru' : '' }}"
+                        data-loading-button
+                    >
+                        <span>Batas Waktu</span>
+                        @if (($filterUnreadCounts['deadline'] ?? 0) > 0)
+                            <strong class="notification-filter-badge">{{ $filterUnreadCounts['deadline'] > 99 ? '99+' : $filterUnreadCounts['deadline'] }}</strong>
+                        @endif
+                    </a>
+                    <a
+                        class="{{ ($activeFilter ?? 'all') === 'task' ? 'active' : '' }}"
+                        href="{{ route('notifications', ['filter' => 'task']) }}"
+                        aria-label="Nilai Tugas{{ ($filterUnreadCounts['task'] ?? 0) > 0 ? ', '.$filterUnreadCounts['task'].' baru' : '' }}"
+                        data-loading-button
+                    >
+                        <span>Nilai Tugas</span>
+                        @if (($filterUnreadCounts['task'] ?? 0) > 0)
+                            <strong class="notification-filter-badge">{{ $filterUnreadCounts['task'] > 99 ? '99+' : $filterUnreadCounts['task'] }}</strong>
+                        @endif
+                    </a>
                 </nav>
 
                 @if ($notificationError)
@@ -51,16 +85,26 @@
                 @endif
 
                 <section class="notification-final-panel" aria-labelledby="notification-list-title">
+                    @php
+                        $notificationPanelCopy = match ($activeFilter ?? 'all') {
+                            'deadline' => [
+                                'title' => 'Batas Waktu Terdekat',
+                                'description' => 'Tugas dan kuis yang perlu segera diselesaikan.',
+                            ],
+                            'task' => [
+                                'title' => 'Tugas Sudah Dinilai',
+                                'description' => 'Nilai tugas yang sudah tersedia.',
+                            ],
+                            default => [
+                                'title' => 'Aktivitas Terbaru',
+                                'description' => 'Pembaruan materi, tugas, kuis, dan diskusi mata kuliah.',
+                            ],
+                        };
+                    @endphp
                     <div class="notification-final-panel-heading">
                         <div>
-                            <h2 id="notification-list-title">
-                                {{ ($activeFilter ?? 'all') === 'deadline' ? 'Batas Waktu Terdekat' : 'Aktivitas Terbaru' }}
-                            </h2>
-                            <p>
-                                {{ ($activeFilter ?? 'all') === 'deadline'
-                                    ? 'Tugas dan kuis yang perlu segera diselesaikan.'
-                                    : 'Pembaruan materi, tugas, kuis, dan diskusi mata kuliah.' }}
-                            </p>
+                            <h2 id="notification-list-title">{{ $notificationPanelCopy['title'] }}</h2>
+                            <p>{{ $notificationPanelCopy['description'] }}</p>
                         </div>
                     </div>
 
@@ -71,6 +115,7 @@
                                     $isUnread = in_array($event['_notification_key'] ?? '', $unreadEventKeys ?? [], true);
                                     $moduleName = strtolower((string) ($event['modulename'] ?? ''));
                                     $eventType = strtolower((string) ($event['eventtype'] ?? 'aktivitas'));
+                                    $isGradedAssignment = $eventType === 'assignment_graded';
                                     $eventLabel = match (true) {
                                         $eventType === 'materi' || in_array($moduleName, ['url', 'resource', 'page', 'book', 'folder', 'label'], true) => 'Materi',
                                         $eventType === 'tugas' || $moduleName === 'assign' => 'Tugas',
@@ -78,7 +123,7 @@
                                         in_array($moduleName, ['forum', 'chat'], true) => 'Diskusi',
                                         default => 'Aktivitas',
                                     };
-                                    $eventIcon = match ($eventLabel) {
+                                    $eventIcon = $isGradedAssignment ? 'badge-check' : match ($eventLabel) {
                                         'Materi' => 'book-open',
                                         'Tugas' => 'clipboard-list',
                                         'Kuis' => 'alarm-clock',
@@ -88,9 +133,12 @@
                                     $time = $event['timesort'] ?? $event['timestart'] ?? null;
                                     $eventCourseId = (int) ($event['courseid'] ?? ($event['course']['id'] ?? 0));
                                     $eventModuleId = (int) ($event['cmid'] ?? 0);
-                                    $eventUrl = $eventCourseId > 0 && $eventModuleId > 0
-                                        ? route('courses.modules.show', ['courseId' => $eventCourseId, 'moduleId' => $eventModuleId])
-                                        : ($eventCourseId > 0 ? route('courses.show', ['courseId' => $eventCourseId]) : null);
+                                    $eventUrl = match (true) {
+                                        $isGradedAssignment && $eventCourseId > 0 => route('grades', ['courseid' => $eventCourseId, 'tab' => 'task']),
+                                        $eventCourseId > 0 && $eventModuleId > 0 => route('courses.modules.show', ['courseId' => $eventCourseId, 'moduleId' => $eventModuleId]),
+                                        $eventCourseId > 0 => route('courses.show', ['courseId' => $eventCourseId]),
+                                        default => null,
+                                    };
                                 @endphp
                                 <article class="notification-final-item {{ $isUnread ? 'is-unread' : '' }}">
                                     <span class="notification-final-item-icon" aria-hidden="true">
@@ -103,13 +151,14 @@
                                         </div>
                                         <h3>{{ $event['name'] ?? 'Aktivitas Pembelajaran' }}</h3>
                                         @if (! empty($event['course']['fullname']))
-                                            <p>{{ $event['course']['fullname'] }}</p>
+                                            <p class="notification-final-item-course">{{ $event['course']['fullname'] }}</p>
                                         @endif
                                     </div>
                                     <div class="notification-final-item-meta">
                                         <time>{{ $time ? date('d M Y, H:i', (int) $time) : 'Waktu belum tersedia' }}</time>
                                         @if ($eventUrl)
-                                            <a href="{{ $eventUrl }}" aria-label="Buka {{ strtolower($eventLabel) }} {{ $event['name'] ?? '' }}">
+                                            <a class="{{ $isGradedAssignment ? 'notification-grade-action' : '' }}" href="{{ $eventUrl }}" aria-label="{{ $isGradedAssignment ? 'Lihat nilai untuk' : 'Buka '.strtolower($eventLabel) }} {{ $event['name'] ?? '' }}">
+                                                @if ($isGradedAssignment)<span>Lihat Nilai</span>@endif
                                                 <i data-lucide="arrow-right" aria-hidden="true"></i>
                                             </a>
                                         @endif
@@ -122,9 +171,11 @@
                             <span aria-hidden="true"><i data-lucide="bell-off"></i></span>
                             <h3>Belum ada notifikasi</h3>
                             <p>
-                                {{ ($activeFilter ?? 'all') === 'deadline'
-                                    ? 'Belum ada batas waktu tugas atau kuis yang perlu diperhatikan.'
-                                    : 'Pembaruan aktivitas pembelajaran akan tampil di sini.' }}
+                                {{ match ($activeFilter ?? 'all') {
+                                    'deadline' => 'Belum ada batas waktu tugas atau kuis yang perlu diperhatikan.',
+                                    'task' => 'Belum ada tugas yang sudah dinilai.',
+                                    default => 'Pembaruan aktivitas pembelajaran akan tampil di sini.',
+                                } }}
                             </p>
                         </div>
                     @endif

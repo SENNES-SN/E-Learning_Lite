@@ -89,6 +89,100 @@ class AssignmentFlowTest extends TestCase
             ->assertSessionHas('assignment_deadline_expired', true);
     }
 
+    public function test_assignment_note_is_saved_as_a_moodle_submission_comment(): void
+    {
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldReceive('getCourseContents')->once()->with(7)->andReturn($this->courseContents());
+        $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
+            'courses' => [['assignments' => [$this->assignmentData(time() + 86400)]]],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(55)->andReturn($this->draftStatus());
+        $service->shouldNotReceive('saveAssignmentSubmission');
+        $service->shouldReceive('addAssignmentSubmissionComment')
+            ->once()
+            ->with(11, 900, 'Saya sudah menyelesaikan tugas.')
+            ->andReturn([['id' => 44]]);
+
+        $this->app->instance(MoodleService::class, $service);
+
+        $response = $this->withStudentSession()->post(route('courses.modules.assignment.submit', [
+            'courseId' => 7,
+            'moduleId' => 11,
+            'mode' => 'work',
+        ]), ['note' => 'Saya sudah menyelesaikan tugas.']);
+
+        $response
+            ->assertRedirect(route('courses.modules.show', ['courseId' => 7, 'moduleId' => 11]) . '?mode=confirm')
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_assignment_note_cannot_replace_the_required_submission_file(): void
+    {
+        $statusWithoutFiles = $this->draftStatus();
+        $statusWithoutFiles['lastattempt']['submission']['plugins'][0]['fileareas'][0]['files'] = [];
+
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldReceive('getCourseContents')->once()->with(7)->andReturn($this->courseContents());
+        $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
+            'courses' => [['assignments' => [$this->assignmentData(time() + 86400)]]],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')->once()->with(55)->andReturn($statusWithoutFiles);
+        $service->shouldNotReceive('saveAssignmentSubmission');
+        $service->shouldNotReceive('addAssignmentSubmissionComment');
+
+        $this->app->instance(MoodleService::class, $service);
+
+        $response = $this->withStudentSession()->post(route('courses.modules.assignment.submit', [
+            'courseId' => 7,
+            'moduleId' => 11,
+            'mode' => 'work',
+        ]), ['note' => 'Catatan tanpa file.']);
+
+        $response->assertSessionHasErrors('answer_files');
+    }
+
+    public function test_confirmation_displays_the_latest_student_submission_comment_as_note(): void
+    {
+        $assignment = $this->assignmentData(time() + 86400);
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldReceive('getCourse')->once()->with(7)->andReturn(['id' => 7, 'fullname' => 'Pengantar UI/UX Design']);
+        $service->shouldReceive('getCourseContents')->once()->with(7)->andReturn($this->courseContents());
+        $service->shouldReceive('getActivityCompletionStatus')->once()->with(7, 21)->andReturn([
+            'statuses' => [['cmid' => 11, 'state' => 0]],
+        ]);
+        $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([
+            'courses' => [['assignments' => [$assignment]]],
+        ]);
+        $service->shouldReceive('getAssignmentSubmissionStatus')
+            ->twice()
+            ->with(55)
+            ->andReturn($this->draftStatus());
+        $service->shouldReceive('getAssignmentSubmissionComments')
+            ->once()
+            ->with(11, 900)
+            ->andReturn([
+                'comments' => [
+                    ['userid' => 21, 'content' => '<p>Saya sudah menyelesaikan tugas.</p>'],
+                    ['userid' => 99, 'content' => '<p>Balasan pengajar.</p>'],
+                ],
+            ]);
+        $service->shouldReceive('getUserGrades')->once()->with(7, 21)->andReturn([]);
+
+        $this->app->instance(MoodleService::class, $service);
+
+        $response = $this->withStudentSession()->get(route('courses.modules.show', [
+            'courseId' => 7,
+            'moduleId' => 11,
+            'mode' => 'confirm',
+        ]));
+
+        $response
+            ->assertOk()
+            ->assertSee('Konfirmasi Pengumpulan')
+            ->assertSee('Saya sudah menyelesaikan tugas.')
+            ->assertDontSee('Balasan pengajar.');
+    }
+
     public function test_final_submission_awards_points_and_badge_from_completion_progress(): void
     {
         $before = [
@@ -191,6 +285,7 @@ class AssignmentFlowTest extends TestCase
             'lastattempt' => [
                 'canedit' => true,
                 'submission' => [
+                    'id' => 900,
                     'status' => 'draft',
                     'plugins' => [[
                         'type' => 'file',

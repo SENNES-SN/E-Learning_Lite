@@ -8,7 +8,7 @@
 | Nama | Melihat Nilai |
 | Aktor | Mahasiswa |
 | Tujuan | Melihat tugas yang sudah dikumpulkan dan kuis yang sudah dikerjakan beserta status nilainya pada suatu kursus. |
-| Pemicu | Mahasiswa memilih menu Nilai dari detail kursus. |
+| Pemicu | Mahasiswa memilih menu Nilai dari detail kursus atau menekan tombol **Lihat Nilai** pada notifikasi tugas yang sudah dinilai. |
 | Prasyarat | Mahasiswa telah login, memiliki akses ke kursus, dan halaman nilai dapat diakses. |
 | Hasil akhir | Sistem hanya menampilkan tugas yang sudah dikumpulkan dan/atau kuis yang sudah dikerjakan, kemudian alur selesai. |
 
@@ -16,9 +16,13 @@
 
 ```mermaid
 flowchart LR
-    start((Start)) --> courseDetail[Detail Kursus]
+    start((Start)) --> accessSource{Akses dari?}
+    accessSource -- Detail Kursus --> courseDetail[Detail Kursus]
     courseDetail --> chooseGrade["Memilih &quot;Nilai&quot;"]
     chooseGrade --> gradePage[Sistem Menampilkan Halaman Nilai]
+    accessSource -- Notifikasi --> gradedNotification[Notifikasi Tugas Sudah Dinilai]
+    gradedNotification --> viewGrade["Menekan &quot;Lihat Nilai&quot;"]
+    viewGrade --> gradePage
     gradePage --> taskGradeAvailable{Ada tugas yang<br/>sudah dikumpulkan?}
 
     taskGradeAvailable -- Ya --> showTaskGrade[Menampilkan Tugas dan Status Nilai]
@@ -62,3 +66,13 @@ flowchart LR
 1. Sistem tidak menemukan tugas yang sudah dikumpulkan maupun kuis yang sudah dikerjakan.
 2. Sistem menampilkan empty state pada kedua tab nilai.
 3. Alur selesai.
+
+### A4 - Membuka Nilai dari Notifikasi
+
+1. Moodle menyediakan nilai tugas mahasiswa beserta waktu penilaiannya.
+2. Sistem memperbarui badge notifikasi pada topbar dari halaman mahasiswa yang sedang dibuka tanpa mewajibkan mahasiswa kembali ke Dashboard.
+3. Sistem menampilkan pemberitahuan tugas sudah dinilai pada filter **Semua** dan **Nilai Tugas**, lengkap dengan jumlah notifikasi baru pada kedua filter.
+4. Ketika halaman Notifikasi dibuka, sistem tetap menampilkan label **Baru** pada kunjungan tersebut lalu menyimpan status bacanya menggunakan kunci teknis per mahasiswa.
+5. Mahasiswa menekan tombol **Lihat Nilai**.
+6. Sistem membuka halaman Detail Nilai kursus dengan tab **Tugas** aktif.
+7. Sistem menampilkan tugas yang sudah dikumpulkan beserta nilai dan status **Sudah Dinilai**.

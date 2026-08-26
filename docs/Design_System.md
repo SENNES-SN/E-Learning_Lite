@@ -195,7 +195,7 @@ Class yang direkomendasikan:
 - Ikon global menggunakan bentuk outline hitam atau navy dengan ukuran visual `30–36px`.
 - Area klik minimal `44 × 44px`.
 - Gunakan ikon `bell` untuk notifikasi dan `circle-user-round` untuk profil.
-- Hindari badge notifikasi apabila tidak ada data unread.
+- Hindari badge notifikasi apabila tidak ada data unread. Badge diperbarui dari seluruh halaman mahasiswa yang memiliki topbar saat halaman dimuat, setiap 60 detik selama tab aktif, dan saat tab browser kembali aktif.
 
 ## 5. Komponen Dasar
 
@@ -417,7 +417,7 @@ Class yang direkomendasikan:
 - Dropzone terdiri dari border luar navy dan area dalam blue-50 dengan dashed border biru.
 - Area upload memuat ikon cloud-upload, instruksi drag-and-drop, link pemilih file, format, dan batas ukuran.
 - File terpilih tampil dalam baris soft blue dengan ikon file, nama, ukuran, dan tombol hapus.
-- Catatan opsional menggunakan textarea berukuran lebar.
+- Catatan opsional menggunakan textarea berukuran lebar. Secara fungsional, `Catatan` adalah nama antarmuka untuk komentar pengajuan Moodle, bukan jawaban `Online text`.
 - Pada tahap konfirmasi, tampilkan ringkasan tugas, batas pengumpulan, file, dan catatan dalam panel terfokus selebar maksimal 760 px. Posisikan panel di tengah pada desktop, sejajarkan baris aksi dengan lebar panel, dan gunakan lebar penuh pada mobile.
 - Jika deadline terlewati, cegah pengumpulan dan tampilkan modal error waktu berakhir.
 - Pada mobile, gunakan judul aktivitas 16 px yang dapat membungkus dengan lega, hilangkan ikon jam dari kartu waktu, susun informasi waktu dan batas dalam dua kolom sejajar, gunakan baris file minimum 72 px, dropzone minimum 190 px, serta tombol pengerjaan dan konfirmasi selebar konten.
@@ -526,8 +526,12 @@ Class yang direkomendasikan:
 
 ### 6.11 Notifikasi
 
-- Halaman memuat header, ringkasan jumlah notifikasi dan batas waktu, filter `Semua`/`Batas Waktu`, serta daftar aktivitas terkait.
-- Pada mobile, seluruh ikon, tipografi, padding, tombol buka, ringkasan, dan card aktivitas memakai skala ringkas. Kedua filter membagi lebar secara sama rata dan teksnya berada di tengah.
+- Halaman memuat header, ringkasan jumlah notifikasi dan batas waktu, filter `Semua`/`Batas Waktu`/`Nilai Tugas`, serta daftar aktivitas terkait. Filter `Nilai Tugas` hanya memuat pemberitahuan tugas yang sudah dinilai, bukan deadline atau pembaruan tugas biasa.
+- Setiap filter menampilkan badge angka jika memiliki notifikasi baru: `Semua` menghitung seluruh notifikasi baru, `Batas Waktu` menghitung deadline baru, dan `Nilai Tugas` menghitung penilaian tugas baru. Badge tidak dirender jika hitungannya nol.
+- Pada kunjungan pertama ke halaman Notifikasi, badge filter dan label `Baru` pada kartu tetap terlihat agar pembaruan dapat dikenali. Seluruh notifikasi yang tampil kemudian ditandai sudah dibaca; tanda baru tidak muncul lagi setelah halaman dimuat ulang, kecuali ada event Moodle yang baru.
+- Tugas yang sudah dinilai menggunakan label `Tugas`, ikon `badge-check`, nama tugas, nama mata kuliah, waktu dosen menilai tugas yang bersumber dari `gradedategraded` Moodle, dan tombol teks `Lihat Nilai` yang menuju halaman Detail Nilai pada tab Tugas.
+- Satu tugas atau kuis hanya menampilkan satu kartu notifikasi meskipun Moodle menyediakan event dibuka, aktivitas, dan jatuh tempo secara terpisah. Gabungkan berdasarkan course, jenis aktivitas, dan nama aktivitas yang telah dibersihkan dari akhiran event seperti `dibuka`, `jatuh tempo`, `tutup`, `ditutup`, `is due`, atau `closes`. Prioritaskan notifikasi nilai jika tugas sudah dinilai; jika belum, prioritaskan jatuh tempo. Jangan tampilkan markup HTML dari deskripsi event pada kartu.
+- Pada mobile, seluruh ikon, tipografi, padding, tombol buka, ringkasan, dan card aktivitas memakai skala ringkas. Ketiga filter membagi lebar secara sama rata dan teksnya berada di tengah.
 - Saat filter dipilih, tampilkan spinner pada tab yang ditekan. Spinner memakai navy pada tab terang dan putih pada tab aktif navy agar kontras.
 
 ## 7. Modal dan Feedback States

@@ -1,7 +1,7 @@
 # Software Requirements Specification (SRS)
 # E-Learning Lite Berbasis Gamifikasi
 
-**Versi Dokumen:** 1.6
+**Versi Dokumen:** 1.8
 **Status:** Draft revisi pengalaman UI mahasiswa
 **Catatan:** Dokumen ini menetapkan Mahasiswa sebagai satu-satunya aktor E-Learning Lite. Sistem merupakan antarmuka alternatif yang lebih sederhana untuk E-Learning UAD/Moodle dengan tambahan feedback gamifikasi. Sistem menggunakan akun E-Learning UAD/Moodle melalui Moodle Web Service untuk mengakses data dan aktivitas pembelajaran mahasiswa. Data akademik utama tetap bersumber dari Moodle, sedangkan completion gamifikasi E-Learning Lite disimpan secara lokal agar poin dan leaderboard dapat dibaca lintas akun.
 
@@ -18,6 +18,8 @@
 | Penyusun SRS | 18 Agustus 2026 | Revisi copy UI agar ramah mahasiswa, menyembunyikan field teknis seperti shortname/ID, dan menghapus navigasi fallback ke E-Learning UAD/Moodle | 1.4 |
 | Penyusun SRS | 19 Agustus 2026 | Menambahkan fallback status penyelesaian khusus E-Learning Lite untuk materi/resource yang tidak menyediakan activity completion Moodle | 1.5 |
 | Penyusun SRS | 25 Agustus 2026 | Menetapkan penyimpanan completion gamifikasi lintas akun di SQLite, aturan tetap 10 poin per aktivitas, dan menghapus bonus poin | 1.6 |
+| Penyusun SRS | 26 Agustus 2026 | Menetapkan `Catatan` tugas sebagai nama antarmuka untuk komentar pengajuan Moodle, bukan jawaban `Online text` | 1.7 |
+| Penyusun SRS | 26 Agustus 2026 | Menetapkan badge notifikasi global, jumlah notifikasi baru per filter, dan status baca teknis yang tetap tersimpan setelah deploy normal | 1.8 |
 
 ---
 
@@ -333,6 +335,7 @@ Fitur ini memungkinkan mahasiswa melihat detail course yang berasal dari Moodle,
 | REQ-025 | Sistem harus menyediakan fitur akses dan pengumpulan tugas melalui E-Learning Lite apabila layanan Moodle Web Service mendukung dan mahasiswa memiliki hak akses yang sesuai. | High |
 | REQ-025A | Detail tugas harus menampilkan deskripsi assignment, kemudian instruksi assignment yang diikuti panduan pengumpulan tambahan dari aplikasi, dengan judul antarmuka `Deskripsi Tugas` dan `Instruksi Tugas`. | High |
 | REQ-025B | Detail tugas harus menampilkan berkas tambahan assignment yang tersedia dan diizinkan bagi mahasiswa oleh E-Learning UAD/Moodle pada bagian Lampiran. | High |
+| REQ-025C | Kolom `Catatan` pada pengumpulan tugas harus membaca dan menambahkan komentar pengajuan Moodle (`assignsubmission_comments`), bukan menyimpannya sebagai jawaban `Online text` atau data akademik lokal. | High |
 | REQ-026 | Sistem harus menampilkan detail nilai tugas hanya setelah submission berstatus `submitted` dan detail nilai kuis hanya setelah kuis dikerjakan. Draft tugas yang baru disimpan pada tahap pengerjaan atau konfirmasi tidak boleh ditampilkan meskipun telah memiliki file maupun timestamp. Tugas atau kuis yang telah diselesaikan tetapi belum memiliki nilai tetap ditampilkan dengan status `Belum Dinilai`, sedangkan aktivitas yang belum dikumpulkan atau belum dikerjakan tidak ditampilkan. Tanggal submit tugas harus tetap berasal dari submission asli dan tidak hilang setelah tugas dinilai. | Medium |
 | REQ-027 | Sistem harus menampilkan isi course yang dapat diakses mahasiswa, seperti topik/section, materi/aktivitas, dan informasi dasar course dari Moodle. | Medium |
 | REQ-027A | Jika materi/resource tidak menyediakan activity completion Moodle, tombol Selesai harus mencatat penyelesaian khusus E-Learning Lite agar progress dan feedback gamifikasi tetap dapat digunakan, tanpa mengubah atau mengklaim status completion Moodle. | High |
@@ -393,8 +396,13 @@ Fitur ini menampilkan daftar notifikasi dan informasi deadline berdasarkan data 
 | ID | Requirement | Priority |
 |---|---|---|
 | REQ-041 | Sistem harus menampilkan daftar notifikasi pembelajaran apabila data tersedia dari Moodle. | Medium |
+| REQ-041A | Sistem harus menggabungkan event Moodle yang merujuk pada tugas atau kuis yang sama menjadi satu kartu berdasarkan identitas dan nama aktivitas yang dinormalisasi, dengan prioritas notifikasi nilai kemudian jatuh tempo, sehingga event dibuka, aktivitas, dan jatuh tempo tidak tampil sebagai duplikat maupun menampilkan markup HTML mentah. | High |
 | REQ-042 | Sistem harus menampilkan deadline kuis/tugas dan aktivitas yang mendekati deadline secara ringkas apabila data tersedia. | Medium |
 | REQ-043 | Sistem harus menampilkan notifikasi dan pengingat deadline sebagai informasi di dalam aplikasi. | Medium |
+| REQ-043A | Sistem harus menampilkan tugas mahasiswa yang sudah dinilai berdasarkan data nilai Moodle pada filter `Semua` dan `Nilai Tugas`, menggunakan waktu penilaian dosen dari `gradedategraded`, menyediakan aksi `Lihat Nilai` menuju Detail Nilai tugas pada kursus terkait, serta membatasi isi filter `Nilai Tugas` hanya untuk pemberitahuan tugas yang sudah dinilai. | High |
+| REQ-043B | Sistem harus memperbarui badge jumlah notifikasi belum dibaca pada setiap halaman mahasiswa yang memiliki topbar saat halaman dimuat, secara berkala ketika halaman aktif, dan ketika tab browser kembali aktif tanpa mewajibkan mahasiswa kembali ke Dashboard. | High |
+| REQ-043C | Halaman Notifikasi harus menampilkan jumlah notifikasi baru pada filter `Semua`, `Batas Waktu`, dan `Nilai Tugas` sesuai kategorinya sebelum notifikasi ditandai telah dibaca. | High |
+| REQ-043D | Sistem harus menyimpan hanya kunci teknis status baca per mahasiswa secara lokal agar notifikasi yang sudah dibaca tidak kembali ditandai baru setelah deploy normal; isi akademik notifikasi tetap bersumber dari Moodle dan tidak diduplikasi sebagai sumber lokal. | High |
 
 ## 3.8 Pencarian dan Filter
 

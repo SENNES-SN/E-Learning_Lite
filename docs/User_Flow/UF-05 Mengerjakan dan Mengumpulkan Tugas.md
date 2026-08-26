@@ -24,8 +24,12 @@ flowchart LR
     startExpired --> startExpiredEnd((End))
 
     canStart -- Ya --> workTask[Mengerjakan Tugas]
-    workTask --> provideAnswer[/Mengisi atau Mengunggah Jawaban/]
-    provideAnswer --> submitTask["Menekan tombol<br/>&quot;Kumpulkan&quot;"]
+    workTask --> provideAnswer[/Mengunggah File dan<br/>Menambahkan Catatan Opsional/]
+    provideAnswer --> continueTask["Menekan tombol<br/>&quot;Lanjutkan&quot;"]
+    continueTask --> confirmTask[Konfirmasi Pengumpulan]
+    confirmTask --> cancelTask{Aksi mahasiswa?}
+    cancelTask -- Batal --> workTask
+    cancelTask -- Kumpulkan --> submitTask["Menekan tombol<br/>&quot;Kumpulkan&quot;"]
     submitTask --> canSubmit{Masih dalam waktu<br/>pengumpulan?}
 
     canSubmit -- Tidak --> submitExpired["Menampilkan pesan:<br/>&quot;Waktu Pengumpulan Telah Terlewatkan, Tidak Dapat Mengumpulkan&quot;"]
@@ -51,16 +55,18 @@ flowchart LR
 2. Mahasiswa menekan tombol **Kerjakan**.
 3. Sistem memastikan tugas masih berada dalam waktu pengumpulan.
 4. Mahasiswa mengerjakan tugas.
-5. Mahasiswa mengisi atau mengunggah jawaban.
-6. Mahasiswa menekan tombol **Kumpulkan**.
-7. Sistem memeriksa kembali batas waktu pengumpulan.
-8. Sistem memproses dan memastikan pengumpulan berhasil.
-9. Sistem memperbarui status tugas.
-10. Sistem memperbarui progres pembelajaran mahasiswa.
-11. Mahasiswa mendapatkan 10 poin.
-12. Sistem memeriksa ketentuan perolehan badge.
-13. Jika ketentuan badge terpenuhi, sistem menampilkan pop-up badge yang diperoleh.
-14. Alur selesai.
+5. Mahasiswa mengunggah file jawaban dan dapat menambahkan **Catatan** opsional yang disimpan sebagai komentar pengajuan Moodle.
+6. Mahasiswa menekan tombol **Lanjutkan**.
+7. Sistem menyimpan file sebagai draft dan Catatan sebagai komentar pengajuan Moodle, lalu menampilkan konfirmasi pengumpulan.
+8. Mahasiswa menekan tombol **Kumpulkan**.
+9. Sistem memeriksa kembali batas waktu pengumpulan.
+10. Sistem memproses dan memastikan pengumpulan berhasil.
+11. Sistem memperbarui status tugas.
+12. Sistem memperbarui progres pembelajaran mahasiswa.
+13. Mahasiswa mendapatkan 10 poin.
+14. Sistem memeriksa ketentuan perolehan badge.
+15. Jika ketentuan badge terpenuhi, sistem menampilkan pop-up badge yang diperoleh.
+16. Alur selesai.
 
 ## Alur Alternatif
 
@@ -73,20 +79,20 @@ flowchart LR
 
 ### A2 - Batas Waktu Berakhir Sebelum Tugas Dikumpulkan
 
-1. Pada langkah 7, batas waktu pengumpulan telah lewat.
+1. Pada langkah 9, batas waktu pengumpulan telah lewat.
 2. Sistem menampilkan pesan **"Waktu Pengumpulan Telah Terlewatkan, Tidak Dapat Mengumpulkan"**.
 3. Jawaban tidak dikumpulkan.
 4. Alur selesai.
 
 ### A3 - Pengumpulan Gagal
 
-1. Pada langkah 8, pengumpulan tidak berhasil.
+1. Pada langkah 10, pengumpulan tidak berhasil.
 2. Sistem mengembalikan mahasiswa ke tahap mengisi atau mengunggah jawaban.
 3. Mahasiswa dapat memeriksa jawaban dan mencoba mengumpulkan kembali selama batas waktu masih tersedia.
 
 ### A4 - Ketentuan Badge Belum Terpenuhi
 
-1. Pada langkah 13, sistem menentukan bahwa ketentuan badge belum terpenuhi.
+1. Pada langkah 15, sistem menentukan bahwa ketentuan badge belum terpenuhi.
 2. Sistem tidak menampilkan pop-up perolehan badge.
 3. Status tugas, progres pembelajaran, dan poin yang telah diperbarui tetap berlaku.
 4. Alur selesai.

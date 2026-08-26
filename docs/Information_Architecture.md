@@ -16,6 +16,9 @@
 
 - Daftar Notifikasi
   - Deadline
+  - Tugas
+    - Tugas Sudah Dinilai
+    - Tautan ke Detail Nilai Tugas
 
 #### Profil Pengguna
 

@@ -385,6 +385,38 @@ class MoodleService
         ]);
     }
 
+    public function getAssignmentSubmissionComments(int $moduleId, int $submissionId): mixed
+    {
+        return $this->request('core_comment_get_comments', [
+            'contextlevel' => 'module',
+            'instanceid' => $moduleId,
+            'component' => 'assignsubmission_comments',
+            'itemid' => $submissionId,
+            'area' => 'submission_comments',
+            'page' => 0,
+            'sortdirection' => 'DESC',
+        ]);
+    }
+
+    public function addAssignmentSubmissionComment(int $moduleId, int $submissionId, string $content): mixed
+    {
+        $content = trim($content);
+        if ($content === '') {
+            throw new InvalidArgumentException('Isi catatan tidak boleh kosong.');
+        }
+
+        return $this->request('core_comment_add_comments', [
+            'comments' => [[
+                'contextlevel' => 'module',
+                'instanceid' => $moduleId,
+                'component' => 'assignsubmission_comments',
+                'content' => $content,
+                'itemid' => $submissionId,
+                'area' => 'submission_comments',
+            ]],
+        ], MoodleRest::METHOD_POST);
+    }
+
     public function getAssignmentSubmissions(int $assignmentId, string $status = 'submitted'): mixed
     {
         $parameters = [
@@ -495,21 +527,6 @@ class MoodleService
         return $this->request('mod_assign_save_submission', [
             'assignmentid' => $assignmentId,
             'plugindata' => $pluginData,
-        ], MoodleRest::METHOD_POST);
-    }
-
-    public function clearAssignmentSubmissionDraft(int $assignmentId): mixed
-    {
-        return $this->request('mod_assign_save_submission', [
-            'assignmentid' => $assignmentId,
-            'plugindata' => [
-                'files_filemanager' => 0,
-                'onlinetext_editor' => [
-                    'text' => '',
-                    'format' => 1,
-                    'itemid' => 0,
-                ],
-            ],
         ], MoodleRest::METHOD_POST);
     }
 

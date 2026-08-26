@@ -4057,6 +4057,10 @@ img.material-reader-preview {
         font-weight: 700;
     }
 
+    .student-topbar-badge[hidden] {
+        display: none;
+    }
+
     .student-page-content {
         width: 100%;
         padding: 0 22px 32px;
@@ -4865,7 +4869,11 @@ img.material-reader-preview {
     }
 
     .notification-final-filters a {
+        display: inline-flex;
         min-width: 130px;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
         padding: 9px 20px;
         border-radius: 6px;
         color: #102e52 !important;
@@ -4878,6 +4886,20 @@ img.material-reader-preview {
     .notification-final-filters a.active {
         background: #102e52;
         color: #ffffff !important;
+    }
+
+    .notification-filter-badge {
+        display: inline-grid;
+        min-width: 20px;
+        height: 20px;
+        place-items: center;
+        padding-inline: 5px;
+        border-radius: 999px;
+        background: #a7f3c4;
+        color: #087a34;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
     }
 
     .notification-final-filters a.is-loading {
@@ -5006,6 +5028,17 @@ img.material-reader-preview {
         background: #102e52;
         color: #ffffff !important;
         text-decoration: none !important;
+    }
+
+    .notification-final-item-meta a.notification-grade-action {
+        display: inline-flex;
+        width: auto;
+        min-height: 36px;
+        gap: 7px;
+        padding: 0 13px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
     }
 
     .notification-final-item-meta svg {
@@ -5251,7 +5284,7 @@ img.material-reader-preview {
 
         .notification-final-filters {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 6px;
             width: 100%;
             padding: 4px;
@@ -5338,6 +5371,13 @@ img.material-reader-preview {
             width: 32px;
             height: 32px;
             flex: 0 0 32px;
+        }
+
+        .notification-final-item-meta a.notification-grade-action {
+            width: auto;
+            min-height: 32px;
+            padding: 0 10px;
+            font-size: 11px;
         }
 
         .notification-final-item-meta svg {

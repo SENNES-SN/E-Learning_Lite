@@ -8,6 +8,8 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/dashboard', [LoginController::class, 'dashboard'])->name('dashboard');
+Route::get('/notifications/unread-summary', [LoginController::class, 'notificationUnreadSummary'])
+    ->name('notifications.unread-summary');
 Route::get('/notifications', [LoginController::class, 'notifications'])->name('notifications');
 Route::get('/profile', [LoginController::class, 'profile'])->name('profile');
 Route::redirect('/courses', '/dashboard')->name('courses');
