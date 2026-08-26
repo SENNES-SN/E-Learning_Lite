@@ -9,6 +9,6 @@ return [
     'verify_ssl' => env('MOODLE_VERIFY_SSL', true),
     'dashboard_cache_seconds' => (int) env('MOODLE_DASHBOARD_CACHE_SECONDS', 120),
     'dashboard_cache_stale_seconds' => (int) env('MOODLE_DASHBOARD_CACHE_STALE_SECONDS', 300),
-    'notification_cache_seconds' => (int) env('MOODLE_NOTIFICATION_CACHE_SECONDS', 120),
-    'notification_cache_stale_seconds' => (int) env('MOODLE_NOTIFICATION_CACHE_STALE_SECONDS', 300),
+    'notification_cache_seconds' => (int) env('MOODLE_NOTIFICATION_CACHE_SECONDS', 30),
+    'notification_cache_stale_seconds' => (int) env('MOODLE_NOTIFICATION_CACHE_STALE_SECONDS', 60),
 ];

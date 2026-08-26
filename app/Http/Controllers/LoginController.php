@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Http;
 
 class LoginController extends Controller
 {
+    /** @var array<int, \Throwable> */
+    protected array $notificationGradeLookupFailures = [];
+
     public function __construct(
         protected MoodleService $moodleService,
         protected GamificationService $gamificationService,
@@ -206,7 +209,7 @@ class LoginController extends Controller
 
         if ($courseIds !== []) {
             try {
-                $allEvents = $this->cachedNotificationEventsForCourses($courses);
+                $allEvents = $this->freshNotificationEventsForCourses($courses);
                 $allEvents = array_map(function ($event): array {
                     if (! is_array($event)) {
                         return [];
@@ -224,6 +227,9 @@ class LoginController extends Controller
                     'task' => $this->taskNotificationEvents($allEvents),
                     default => $allEvents,
                 };
+                if ($this->notificationGradeLookupFailures !== []) {
+                    $notificationError = 'Sebagian nilai tugas belum dapat diperbarui. Silakan coba lagi beberapa saat.';
+                }
                 $this->markNotificationsAsRead($allEvents);
             } catch (\Throwable $throwable) {
                 $notificationError = $this->moodleUnavailableMessage($throwable);
@@ -2478,6 +2484,7 @@ class LoginController extends Controller
     protected function notificationEventsForCourses(mixed $courses): array
     {
         $courses = is_array($courses) ? $courses : [];
+        $this->notificationGradeLookupFailures = [];
         $courseIds = collect($courses)
             ->pluck('id')
             ->filter()
@@ -2554,6 +2561,26 @@ class LoginController extends Controller
         );
     }
 
+    protected function freshNotificationEventsForCourses(mixed $courses): array
+    {
+        $courses = is_array($courses) ? $courses : [];
+        $courseIds = collect($courses)
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id): int => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($courseIds === []) {
+            return [];
+        }
+
+        $this->forgetFlexibleCacheKey($this->notificationEventsCacheKey($courseIds));
+
+        return $this->cachedNotificationEventsForCourses($courses);
+    }
+
     /**
      * @return array{0: int, 1: int}
      */
@@ -2572,11 +2599,11 @@ class LoginController extends Controller
      */
     protected function notificationCacheWindow(): array
     {
-        $fresh = max(1, (int) config('moodle.notification_cache_seconds', 120));
+        $fresh = max(1, (int) config('moodle.notification_cache_seconds', 30));
 
         return [
             $fresh,
-            max($fresh + 1, (int) config('moodle.notification_cache_stale_seconds', 300)),
+            max($fresh + 1, (int) config('moodle.notification_cache_stale_seconds', 60)),
         ];
     }
 
@@ -2667,7 +2694,8 @@ class LoginController extends Controller
 
             try {
                 $gradesData = $this->activeMoodleService()->getUserGrades($courseId, $userId);
-            } catch (\Throwable) {
+            } catch (\Throwable $throwable) {
+                $this->notificationGradeLookupFailures[$courseId] = $throwable;
                 continue;
             }
 
@@ -3124,7 +3152,7 @@ class LoginController extends Controller
     {
         $time = $this->notificationEventTime($event);
         if (($event['source'] ?? null) === 'assignment-grade') {
-            return $time > 0 && $time >= strtotime('-30 days');
+            return $time > 0;
         }
 
         if ($time <= 0) {

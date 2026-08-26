@@ -80,7 +80,7 @@
 
                 @if ($notificationError)
                     <div class="student-inline-error" role="alert">
-                        Notifikasi belum dapat dimuat. Silakan coba lagi beberapa saat.
+                        {{ $notificationError }}
                     </div>
                 @endif
 

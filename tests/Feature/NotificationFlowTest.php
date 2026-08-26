@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Services\MoodleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Mockery;
+use RuntimeException;
 use Tests\TestCase;
 
 class NotificationFlowTest extends TestCase
@@ -120,6 +122,74 @@ class NotificationFlowTest extends TestCase
             ->assertSee('Tugas Riset Pengguna')
             ->assertDontSee('Tugas Riset Pengguna sudah dinilai')
             ->assertSee('Lihat Nilai');
+    }
+
+    public function test_notification_page_refreshes_stale_cached_grade_events(): void
+    {
+        $cacheKey = 'notification_events:v1:21:'.sha1('7');
+        Cache::put($cacheKey, [], 600);
+        Cache::put("illuminate:cache:flexible:created:{$cacheKey}", now()->timestamp, 600);
+
+        $service = $this->notificationService([
+            'gradeitems' => [[
+                'itemname' => 'Tugas Baru Dinilai',
+                'itemmodule' => 'assign',
+                'iteminstance' => 55,
+                'cmid' => 11,
+                'graderaw' => 92,
+                'gradedategraded' => time() - 30,
+                'hidden' => false,
+            ]],
+        ]);
+        $this->app->instance(MoodleService::class, $service);
+
+        $this->withStudentSession()
+            ->get(route('notifications', ['filter' => 'task']))
+            ->assertOk()
+            ->assertSee('Tugas Baru Dinilai')
+            ->assertSee('Lihat Nilai');
+    }
+
+    public function test_graded_assignment_older_than_thirty_days_remains_available(): void
+    {
+        $service = $this->notificationService([
+            'gradeitems' => [[
+                'itemname' => 'Tugas Lama Sudah Dinilai',
+                'itemmodule' => 'assign',
+                'iteminstance' => 55,
+                'cmid' => 11,
+                'graderaw' => 87,
+                'gradedategraded' => now()->subDays(45)->timestamp,
+                'hidden' => false,
+            ]],
+        ]);
+        $this->app->instance(MoodleService::class, $service);
+
+        $this->withStudentSession()
+            ->get(route('notifications', ['filter' => 'task']))
+            ->assertOk()
+            ->assertSee('Tugas Lama Sudah Dinilai')
+            ->assertSee('Lihat Nilai');
+    }
+
+    public function test_grade_lookup_failure_is_not_shown_as_an_empty_success_state(): void
+    {
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldReceive('getUserByUsername')->once()->with('student')->andReturn(['id' => 21]);
+        $service->shouldReceive('getUserCourses')->once()->with(21)->andReturn([
+            ['id' => 7, 'fullname' => 'Design Thinking'],
+        ]);
+        $service->shouldReceive('getCalendarActionEventsByCourses')->once()->with([7])->andReturn([]);
+        $service->shouldReceive('getAssignments')->once()->with(7)->andReturn([]);
+        $service->shouldReceive('getQuizzes')->once()->with(7)->andReturn([]);
+        $service->shouldReceive('getCourseContents')->once()->with(7)->andReturn([]);
+        $service->shouldReceive('getUserGrades')->once()->with(7, 21)->andThrow(new RuntimeException('Moodle gagal'));
+        $this->app->instance(MoodleService::class, $service);
+
+        $this->withStudentSession()
+            ->get(route('notifications', ['filter' => 'task']))
+            ->assertOk()
+            ->assertSee('Sebagian nilai tugas belum dapat diperbarui. Silakan coba lagi beberapa saat.');
     }
 
     public function test_task_filter_only_contains_graded_assignment_notifications(): void
