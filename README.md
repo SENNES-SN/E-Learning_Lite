@@ -74,6 +74,10 @@ MOODLE_TOKEN=
 MOODLE_USERNAME=
 MOODLE_PASSWORD=
 MOODLE_VERIFY_SSL=true
+MOODLE_DASHBOARD_CACHE_SECONDS=120
+MOODLE_DASHBOARD_CACHE_STALE_SECONDS=300
+MOODLE_NOTIFICATION_CACHE_SECONDS=120
+MOODLE_NOTIFICATION_CACHE_STALE_SECONDS=300
 
 ADMIN_MOODLE_USERNAMES=
 ```
@@ -83,6 +87,7 @@ Catatan Moodle:
 - `MOODLE_BASE_URL` diisi URL Moodle yang akan dihubungkan.
 - `MOODLE_SERVICE_NAME` diisi nama service Moodle untuk login/akses data jika dibutuhkan implementasi.
 - `MOODLE_TOKEN` dapat diisi jika ada token service dari Moodle.
+- `MOODLE_DASHBOARD_CACHE_SECONDS` dan `MOODLE_NOTIFICATION_CACHE_SECONDS` mengatur masa cache segar ringkasan mahasiswa. Variabel `*_STALE_SECONDS` menentukan batas maksimum data lama yang boleh langsung ditampilkan sambil pembaruan dijalankan setelah respons; default-nya 120 detik segar dan maksimal 300 detik. Cache tetap hanya bersifat teknis dan bukan sumber data akademik.
 - `ADMIN_MOODLE_USERNAMES` dapat diisi daftar username Moodle yang dianggap admin lokal, pisahkan dengan koma jika lebih dari satu
 
 ### 4. Build dan jalankan container

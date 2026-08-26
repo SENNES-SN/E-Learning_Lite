@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\GamificationActivityCompletion;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class GamificationCompletionStore
@@ -56,14 +57,36 @@ class GamificationCompletionStore
      */
     public function rememberCompletedStatuses(int $moodleUserId, int $courseId, array $statuses): void
     {
+        if (! $this->isAvailable() || $moodleUserId <= 0 || $courseId <= 0) {
+            return;
+        }
+
+        $now = now();
+        $rows = [];
+
         foreach ($statuses as $status) {
             if (! is_array($status) || ! $this->statusIsComplete($status)) {
                 continue;
             }
 
             $moduleId = (int) ($status['cmid'] ?? $status['coursemoduleid'] ?? 0);
+            if ($moduleId <= 0) {
+                continue;
+            }
+
             $completedAt = (int) ($status['timecompleted'] ?? $status['completiontime'] ?? 0);
-            $this->remember($moodleUserId, $courseId, $moduleId, $completedAt ?: null);
+            $rows[$moduleId] = [
+                'moodle_user_id' => $moodleUserId,
+                'course_id' => $courseId,
+                'module_id' => $moduleId,
+                'completed_at' => Carbon::createFromTimestamp($completedAt ?: time()),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if ($rows !== []) {
+            DB::table('gamification_activity_completions')->insertOrIgnore(array_values($rows));
         }
     }
 
