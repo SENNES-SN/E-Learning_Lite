@@ -209,7 +209,7 @@ class LoginController extends Controller
 
         if ($courseIds !== []) {
             try {
-                $allEvents = $this->freshNotificationEventsForCourses($courses);
+                $allEvents = $this->cachedNotificationEventsForCourses($courses);
                 $allEvents = array_map(function ($event): array {
                     if (! is_array($event)) {
                         return [];
@@ -2561,26 +2561,6 @@ class LoginController extends Controller
         );
     }
 
-    protected function freshNotificationEventsForCourses(mixed $courses): array
-    {
-        $courses = is_array($courses) ? $courses : [];
-        $courseIds = collect($courses)
-            ->pluck('id')
-            ->filter()
-            ->map(fn ($id): int => (int) $id)
-            ->sort()
-            ->values()
-            ->all();
-
-        if ($courseIds === []) {
-            return [];
-        }
-
-        $this->forgetFlexibleCacheKey($this->notificationEventsCacheKey($courseIds));
-
-        return $this->cachedNotificationEventsForCourses($courses);
-    }
-
     /**
      * @return array{0: int, 1: int}
      */
@@ -2603,7 +2583,7 @@ class LoginController extends Controller
 
         return [
             $fresh,
-            max($fresh + 1, (int) config('moodle.notification_cache_stale_seconds', 60)),
+            max($fresh + 1, (int) config('moodle.notification_cache_stale_seconds', 300)),
         ];
     }
 

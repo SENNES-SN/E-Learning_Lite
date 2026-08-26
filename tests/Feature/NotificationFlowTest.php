@@ -13,8 +13,16 @@ class NotificationFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Cache::flush();
+    }
+
     protected function tearDown(): void
     {
+        Cache::flush();
         Mockery::close();
 
         parent::tearDown();
@@ -124,29 +132,42 @@ class NotificationFlowTest extends TestCase
             ->assertSee('Lihat Nilai');
     }
 
-    public function test_notification_page_refreshes_stale_cached_grade_events(): void
+    public function test_notification_page_reuses_warmed_event_cache_without_waiting_for_moodle(): void
     {
+        $courseCacheKey = 'notification_courses:v1:21';
         $cacheKey = 'notification_events:v1:21:'.sha1('7');
-        Cache::put($cacheKey, [], 600);
+        Cache::put($courseCacheKey, [['id' => 7, 'fullname' => 'Design Thinking']], 600);
+        Cache::put("illuminate:cache:flexible:created:{$courseCacheKey}", now()->timestamp, 600);
+        Cache::put($cacheKey, [[
+            'name' => 'Tugas dari Cache',
+            'courseid' => 7,
+            'cmid' => 11,
+            'instance' => 55,
+            'modulename' => 'assign',
+            'eventtype' => 'assignment_graded',
+            'timesort' => time() - 30,
+            'source' => 'assignment-grade',
+            'course' => [
+                'id' => 7,
+                'fullname' => 'Design Thinking',
+            ],
+        ]], 600);
         Cache::put("illuminate:cache:flexible:created:{$cacheKey}", now()->timestamp, 600);
 
-        $service = $this->notificationService([
-            'gradeitems' => [[
-                'itemname' => 'Tugas Baru Dinilai',
-                'itemmodule' => 'assign',
-                'iteminstance' => 55,
-                'cmid' => 11,
-                'graderaw' => 92,
-                'gradedategraded' => time() - 30,
-                'hidden' => false,
-            ]],
-        ]);
+        $service = Mockery::mock(MoodleService::class);
+        $service->shouldNotReceive('getUserByUsername');
+        $service->shouldNotReceive('getUserCourses');
+        $service->shouldNotReceive('getCalendarActionEventsByCourses');
+        $service->shouldNotReceive('getAssignments');
+        $service->shouldNotReceive('getQuizzes');
+        $service->shouldNotReceive('getCourseContents');
+        $service->shouldNotReceive('getUserGrades');
         $this->app->instance(MoodleService::class, $service);
 
         $this->withStudentSession()
             ->get(route('notifications', ['filter' => 'task']))
             ->assertOk()
-            ->assertSee('Tugas Baru Dinilai')
+            ->assertSee('Tugas dari Cache')
             ->assertSee('Lihat Nilai');
     }
 
